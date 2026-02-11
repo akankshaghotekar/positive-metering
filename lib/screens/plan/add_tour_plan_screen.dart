@@ -1,0 +1,356 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
+import 'package:positive_metering/screens/plan/lean_plan/lean_plan_screen.dart';
+import 'package:positive_metering/screens/plan/tour_plan/tour_plan_screen.dart';
+import 'package:positive_metering/utils/animation_helper/animated_page_route.dart';
+import 'package:positive_metering/utils/app_colors.dart';
+import 'package:positive_metering/utils/widgets/add_customer_popup.dart';
+import 'package:positive_metering/utils/widgets/common_app_bar.dart';
+
+class AddTourPlanScreen extends StatefulWidget {
+  const AddTourPlanScreen({super.key});
+
+  @override
+  State<AddTourPlanScreen> createState() => _AddTourPlanScreenState();
+}
+
+class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
+  DateTime? selectedDate;
+  final DateFormat _formatter = DateFormat('dd-MM-yyyy');
+
+  String? customerName;
+  String? tourType;
+  String? visitCall;
+  String? region;
+  String? customerType;
+  String? group;
+
+  final TextEditingController companyCtrl = TextEditingController();
+  final TextEditingController nameCtrl = TextEditingController();
+  final TextEditingController mobileCtrl = TextEditingController();
+
+  final List<String> customers = [
+    "Add New",
+    "Customer A",
+    "Customer B",
+    "Customer C",
+  ];
+
+  Future<void> _openAddCustomerPopup() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (_) => const AddCustomerPopup(),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        customerName = result;
+      });
+    }
+  }
+
+  void _onSaveTap() {
+    if (tourType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Please select Tour Type"),
+          backgroundColor: AppColor.primaryRed,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+        ),
+      );
+      return;
+    }
+
+    if (tourType == "Tour") {
+      Navigator.pushAndRemoveUntil(
+        context,
+        AnimatedPageRoute(page: const PlanScreen(initialTab: PlanType.tour)),
+        (route) => false,
+      );
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        AnimatedPageRoute(page: const PlanScreen(initialTab: PlanType.lean)),
+        (route) => false,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColor.white,
+      appBar: const CommonAppBar(
+        showBack: true,
+        showDrawer: false,
+        showAdd: false,
+      ),
+
+      /// FIXED BUTTONS
+      bottomNavigationBar: _actionButtons(),
+
+      body: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: Column(
+          children: [
+            SizedBox(height: 12.h),
+
+            Text(
+              "Add Tour Plan",
+              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
+            ),
+
+            SizedBox(height: 16.h),
+
+            /// FORM
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(bottom: 20.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _label("Date"),
+                    _dateField(),
+
+                    SizedBox(height: 18.h),
+                    _label("Customer Name"),
+                    _dropdown(
+                      "Select Customer",
+                      customers.contains(customerName) ? customerName : null,
+                      (v) {
+                        if (v == "Add New") {
+                          _openAddCustomerPopup();
+                        } else {
+                          setState(() => customerName = v);
+                        }
+                      },
+                      items: customers,
+                      displayValue: customerName,
+                    ),
+
+                    SizedBox(height: 18.h),
+                    _label("Tour Type"),
+                    _dropdown(
+                      "Select the Tour Type",
+                      tourType,
+                      (v) => setState(() => tourType = v),
+                      items: const ["Tour", "Lean"],
+                    ),
+
+                    SizedBox(height: 18.h),
+                    _label("Visit/Call"),
+                    _dropdown(
+                      "Select the Visit/Call",
+                      visitCall,
+                      (v) => setState(() => visitCall = v),
+                    ),
+
+                    SizedBox(height: 18.h),
+                    _label("Company Name"),
+                    _textField(companyCtrl, "Enter Company Name"),
+
+                    SizedBox(height: 18.h),
+                    _label("Name"),
+                    _textField(nameCtrl, "Enter Name"),
+
+                    SizedBox(height: 18.h),
+                    _label("Mobile No"),
+                    _textField(mobileCtrl, "Enter Mobile No."),
+
+                    SizedBox(height: 18.h),
+                    _label("Region"),
+                    _dropdown(
+                      "Select the Region",
+                      region,
+                      (v) => setState(() => region = v),
+                    ),
+
+                    SizedBox(height: 18.h),
+                    _label("Customer Type"),
+                    _dropdown(
+                      "Select the type",
+                      customerType,
+                      (v) => setState(() => customerType = v),
+                    ),
+
+                    SizedBox(height: 18.h),
+                    _label("Group"),
+                    _dropdown(
+                      "Select the Group",
+                      group,
+                      (v) => setState(() => group = v),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // UI WIDGETS
+
+  Widget _label(String text) {
+    return Text(
+      text,
+      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
+    );
+  }
+
+  Widget _dateField() {
+    return InkWell(
+      onTap: _pickDate,
+      child: Container(
+        height: 46.h,
+        margin: EdgeInsets.only(top: 6.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(color: AppColor.grey),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              selectedDate == null
+                  ? "Select Date"
+                  : _formatter.format(selectedDate!),
+              style: TextStyle(fontSize: 14.sp),
+            ),
+            const Icon(Icons.calendar_month),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dropdown(
+    String hint,
+    String? value,
+    Function(String?) onChanged, {
+    List<String>? items,
+    String? displayValue,
+  }) {
+    final dropdownItems = items ?? ["Option 1", "Option 2", "Option 3"];
+
+    return Container(
+      height: 46.h,
+      margin: EdgeInsets.only(top: 6.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(color: AppColor.grey),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: items != null && items.contains(value) ? value : null,
+
+          hint: Text(displayValue ?? hint),
+
+          isExpanded: true,
+          items: dropdownItems
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _textField(TextEditingController controller, String hint) {
+    return Container(
+      height: 46.h,
+      margin: EdgeInsets.only(top: 6.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(color: AppColor.grey),
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(hintText: hint, border: InputBorder.none),
+      ),
+    );
+  }
+
+  // DATE PICKER
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(primary: AppColor.primaryRed),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() => selectedDate = picked);
+    }
+  }
+
+  // ACTION BUTTONS
+
+  Widget _actionButtons() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 35.h),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: _onSaveTap,
+              child: Container(
+                height: 46.h,
+                decoration: BoxDecoration(
+                  color: AppColor.primaryRed,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  "Save",
+                  style: TextStyle(
+                    color: AppColor.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: 16.w),
+          Expanded(
+            child: Container(
+              height: 46.h,
+              decoration: BoxDecoration(
+                color: AppColor.primaryBlue,
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                "Reset",
+                style: TextStyle(
+                  color: AppColor.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
