@@ -5,13 +5,19 @@ import 'package:positive_metering/utils/app_colors.dart';
 class CommonButton extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
+  final bool isLoading; // NEW
 
-  const CommonButton({super.key, required this.title, required this.onTap});
+  const CommonButton({
+    super.key,
+    required this.title,
+    required this.onTap,
+    this.isLoading = false, // default
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap, // disable click when loading
       child: Container(
         width: double.infinity,
         height: 52.h,
@@ -20,14 +26,23 @@ class CommonButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14.r),
         ),
         alignment: Alignment.center,
-        child: Text(
-          title,
-          style: TextStyle(
-            color: AppColor.white,
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        child: isLoading
+            ? SizedBox(
+                height: 20.h,
+                width: 20.h,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColor.white,
+                ),
+              )
+            : Text(
+                title,
+                style: TextStyle(
+                  color: AppColor.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
       ),
     );
   }

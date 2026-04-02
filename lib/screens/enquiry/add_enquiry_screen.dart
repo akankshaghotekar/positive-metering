@@ -14,6 +14,8 @@ class AddEnquiryScreen extends StatefulWidget {
 }
 
 class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   DateTime? selectedDate;
   final DateFormat _formatter = DateFormat('dd-MM-yyyy');
 
@@ -68,7 +70,6 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
       backgroundColor: AppColor.white,
       appBar: CommonAppBar(showBack: true, showDrawer: false, showAdd: false),
 
-      /// 🔒 FIXED BUTTONS
       bottomNavigationBar: _actionButtons(),
 
       body: Padding(
@@ -84,53 +85,55 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
 
             SizedBox(height: 20.h),
 
-            /// 🔽 ONLY FORM SCROLLS
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(bottom: 20.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _label("Date"),
-                    _dateField(),
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(bottom: 20.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label("Date"),
+                      _dateField(),
 
-                    SizedBox(height: 22.h),
-                    _label("Customer Name"),
-                    _dropdownField(
-                      hint: "Select Customer",
-                      value: selectedCustomer,
-                      items: customers,
-                      onChanged: (val) {
-                        if (val == "Add New") {
-                          _openAddCustomerPopup();
-                        } else {
-                          setState(() => selectedCustomer = val);
-                        }
-                      },
-                    ),
+                      SizedBox(height: 22.h),
+                      _label("Customer Name"),
+                      _dropdownField(
+                        hint: "Select Customer",
+                        value: selectedCustomer,
+                        items: customers,
+                        onChanged: (val) {
+                          if (val == "Add New") {
+                            _openAddCustomerPopup();
+                          } else {
+                            setState(() => selectedCustomer = val);
+                          }
+                        },
+                      ),
 
-                    SizedBox(height: 22.h),
+                      SizedBox(height: 22.h),
 
-                    _label("Sector"),
-                    _dropdownField(
-                      hint: "Select the Sector",
-                      value: selectedSector,
-                      items: sectors,
-                      onChanged: (val) {
-                        setState(() => selectedSector = val);
-                      },
-                    ),
+                      _label("Sector"),
+                      _dropdownField(
+                        hint: "Select the Sector",
+                        value: selectedSector,
+                        items: sectors,
+                        onChanged: (val) {
+                          setState(() => selectedSector = val);
+                        },
+                      ),
 
-                    SizedBox(height: 22.h),
-                    _label("Product"),
-                    _productGrid(),
+                      SizedBox(height: 22.h),
+                      _label("Product"),
+                      _productGrid(),
 
-                    SizedBox(height: 22.h),
-                    _label("Comments"),
-                    _textField(),
+                      SizedBox(height: 22.h),
+                      _label("Comments"),
+                      _textField(),
 
-                    SizedBox(height: 30.h),
-                  ],
+                      SizedBox(height: 30.h),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -222,12 +225,19 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
         borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: AppColor.grey),
       ),
-      child: TextField(
+      child: TextFormField(
         controller: commentCtrl,
         maxLines: null,
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return "Comments are required";
+          }
+          return null;
+        },
         decoration: const InputDecoration(
           hintText: "Description",
           border: InputBorder.none,
+          errorStyle: TextStyle(fontSize: 12),
         ),
       ),
     );
@@ -289,12 +299,15 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
           Expanded(
             child: InkWell(
               onTap: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => EnquiryScreen()),
-                  (route) => false,
-                );
+                if (_formKey.currentState!.validate()) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => EnquiryScreen()),
+                    (route) => false,
+                  );
+                } else {}
               },
+
               child: Container(
                 height: 50.h,
                 decoration: BoxDecoration(

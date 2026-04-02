@@ -13,6 +13,8 @@ class ViewAddFollowUpScreen extends StatefulWidget {
 }
 
 class _ViewAddFollowUpScreenState extends State<ViewAddFollowUpScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   DateTime? enquiryDate;
   DateTime? followUpDate;
 
@@ -27,6 +29,9 @@ class _ViewAddFollowUpScreenState extends State<ViewAddFollowUpScreen> {
   final Set<String> selectedProducts = {};
 
   final List<String> products = ["Dosing Pumps", "SC Pumps", "ED Pumps"];
+
+  final TextEditingController commentCtrl1 = TextEditingController();
+  final TextEditingController commentCtrl2 = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -51,65 +56,68 @@ class _ViewAddFollowUpScreenState extends State<ViewAddFollowUpScreen> {
             SizedBox(height: 16.h),
 
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(bottom: 20.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _label("Date"),
-                    _dateField(enquiryDate, (d) => enquiryDate = d),
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(bottom: 20.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label("Date"),
+                      _dateField(enquiryDate, (d) => enquiryDate = d),
 
-                    SizedBox(height: 20.h),
-                    _label("Customer Name"),
-                    _dropdown("Customer Name", customer, (v) {
-                      setState(() => customer = v);
-                    }),
+                      SizedBox(height: 20.h),
+                      _label("Customer Name"),
+                      _dropdown("Customer Name", customer, (v) {
+                        setState(() => customer = v);
+                      }),
 
-                    SizedBox(height: 20.h),
-                    _label("Sector"),
-                    _dropdown("Select the Sector", sector, (v) {
-                      setState(() => sector = v);
-                    }),
+                      SizedBox(height: 20.h),
+                      _label("Sector"),
+                      _dropdown("Select the Sector", sector, (v) {
+                        setState(() => sector = v);
+                      }),
 
-                    SizedBox(height: 20.h),
-                    _label("Product"),
-                    _productGrid(),
+                      SizedBox(height: 20.h),
+                      _label("Product"),
+                      _productGrid(),
 
-                    SizedBox(height: 20.h),
-                    _label("Comments"),
-                    _textField("Description"),
+                      SizedBox(height: 20.h),
+                      _label("Comments"),
+                      _textField(commentCtrl1, "Description"),
 
-                    SizedBox(height: 24.h),
+                      SizedBox(height: 24.h),
 
-                    /// FOLLOW-UP HISTORY
-                    _followUpHistory(),
+                      /// FOLLOW-UP HISTORY
+                      _followUpHistory(),
 
-                    SizedBox(height: 24.h),
-                    _label("Status"),
-                    _dropdown("Select Status", status, (v) {
-                      setState(() => status = v);
-                    }),
+                      SizedBox(height: 24.h),
+                      _label("Status"),
+                      _dropdown("Select Status", status, (v) {
+                        setState(() => status = v);
+                      }),
 
-                    SizedBox(height: 20.h),
-                    _label("Lost Reason"),
-                    _dropdown("Select", lostReason, (v) {
-                      setState(() => lostReason = v);
-                    }),
+                      SizedBox(height: 20.h),
+                      _label("Lost Reason"),
+                      _dropdown("Select", lostReason, (v) {
+                        setState(() => lostReason = v);
+                      }),
 
-                    SizedBox(height: 20.h),
-                    _label("Follow-up Done By"),
-                    _dropdown("Select", followUpDoneBy, (v) {
-                      setState(() => followUpDoneBy = v);
-                    }),
+                      SizedBox(height: 20.h),
+                      _label("Follow-up Done By"),
+                      _dropdown("Select", followUpDoneBy, (v) {
+                        setState(() => followUpDoneBy = v);
+                      }),
 
-                    SizedBox(height: 20.h),
-                    _label("Date"),
-                    _dateField(followUpDate, (d) => followUpDate = d),
+                      SizedBox(height: 20.h),
+                      _label("Date"),
+                      _dateField(followUpDate, (d) => followUpDate = d),
 
-                    SizedBox(height: 20.h),
-                    _label("Comments"),
-                    _textField("Description"),
-                  ],
+                      SizedBox(height: 20.h),
+                      _label("Comments"),
+                      _textField(commentCtrl2, "Description"),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -190,7 +198,7 @@ class _ViewAddFollowUpScreenState extends State<ViewAddFollowUpScreen> {
     );
   }
 
-  Widget _textField(String hint) {
+  Widget _textField(TextEditingController controller, String hint) {
     return Container(
       height: 80.h,
       margin: EdgeInsets.only(top: 6.h),
@@ -199,9 +207,20 @@ class _ViewAddFollowUpScreenState extends State<ViewAddFollowUpScreen> {
         borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: AppColor.grey),
       ),
-      child: TextField(
+      child: TextFormField(
+        controller: controller,
         maxLines: null,
-        decoration: InputDecoration(hintText: hint, border: InputBorder.none),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return "Comments are required";
+          }
+          return null;
+        },
+        decoration: InputDecoration(
+          hintText: hint,
+          border: InputBorder.none,
+          errorStyle: const TextStyle(fontSize: 12),
+        ),
       ),
     );
   }
@@ -353,12 +372,15 @@ class _ViewAddFollowUpScreenState extends State<ViewAddFollowUpScreen> {
           Expanded(
             child: InkWell(
               onTap: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => FollowUpScreen()),
-                  (route) => false,
-                );
+                if (_formKey.currentState!.validate()) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => FollowUpScreen()),
+                    (route) => false,
+                  );
+                }
               },
+
               child: Container(
                 height: 46.h,
                 decoration: BoxDecoration(

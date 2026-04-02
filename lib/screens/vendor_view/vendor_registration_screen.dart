@@ -14,6 +14,8 @@ class VendorRegistrationScreen extends StatefulWidget {
 }
 
 class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   DateTime? selectedDate;
   final DateFormat _formatter = DateFormat('dd-MM-yyyy');
 
@@ -78,62 +80,65 @@ class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
 
             /// FORM
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(bottom: 20.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _label("Date"),
-                    _dateField(),
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(bottom: 20.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label("Date"),
+                      _dateField(),
 
-                    SizedBox(height: 18.h),
-                    _label("Company Name"),
-                    _textField(companyCtrl, "Enter Company Name"),
+                      SizedBox(height: 18.h),
+                      _label("Company Name"),
+                      _textField(companyCtrl, "Enter Company Name"),
 
-                    SizedBox(height: 18.h),
-                    _label("Customer Name"),
-                    _dropdown(
-                      "Select Customer",
-                      customers.contains(customerName) ? customerName : null,
-                      (v) {
-                        if (v == "Add New") {
-                          _openAddCustomerPopup();
-                        } else {
-                          setState(() => customerName = v);
-                        }
-                      },
-                      items: customers,
-                      displayValue: customerName,
-                    ),
+                      SizedBox(height: 18.h),
+                      _label("Customer Name"),
+                      _dropdown(
+                        "Select Customer",
+                        customers.contains(customerName) ? customerName : null,
+                        (v) {
+                          if (v == "Add New") {
+                            _openAddCustomerPopup();
+                          } else {
+                            setState(() => customerName = v);
+                          }
+                        },
+                        items: customers,
+                        displayValue: customerName,
+                      ),
 
-                    SizedBox(height: 18.h),
-                    _label("Product List"),
-                    _dropdown(
-                      "Select the Tour Type",
-                      product,
-                      (v) => setState(() => product = v),
-                    ),
+                      SizedBox(height: 18.h),
+                      _label("Product List"),
+                      _dropdown(
+                        "Select the Tour Type",
+                        product,
+                        (v) => setState(() => product = v),
+                      ),
 
-                    SizedBox(height: 18.h),
-                    _label("Address"),
-                    _textField(addressCtrl, "Enter Address"),
+                      SizedBox(height: 18.h),
+                      _label("Address"),
+                      _textField(addressCtrl, "Enter Address"),
 
-                    SizedBox(height: 18.h),
-                    _label("Mobile No"),
-                    _textField(mobileCtrl, "Enter Mobile No."),
+                      SizedBox(height: 18.h),
+                      _label("Mobile No"),
+                      _textField(mobileCtrl, "Enter Mobile No."),
 
-                    SizedBox(height: 18.h),
-                    _label("Status"),
-                    _dropdown(
-                      "Select Status",
-                      status,
-                      (v) => setState(() => status = v),
-                    ),
+                      SizedBox(height: 18.h),
+                      _label("Status"),
+                      _dropdown(
+                        "Select Status",
+                        status,
+                        (v) => setState(() => status = v),
+                      ),
 
-                    SizedBox(height: 18.h),
-                    _label("Comments"),
-                    _commentField(),
-                  ],
+                      SizedBox(height: 18.h),
+                      _label("Comments"),
+                      _commentField(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -152,8 +157,13 @@ class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
                     ),
                   ),
                   onPressed: () {
-                    // TODO: submit vendor registration
+                    if (_formKey.currentState!.validate()) {
+                      Navigator.pop(context);
+                    } else {
+                      print("Validation Failed");
+                    }
                   },
+
                   child: const Text(
                     "Submit",
                     style: TextStyle(
@@ -225,19 +235,26 @@ class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
 
   Widget _commentField() {
     return Container(
-      height: 80.h,
+      height: 100.h,
       margin: EdgeInsets.only(top: 6.h),
       padding: EdgeInsets.symmetric(horizontal: 14.w),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: AppColor.grey),
       ),
-      child: TextField(
+      child: TextFormField(
         controller: commentsCtrl,
         maxLines: null,
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return "Comments are required";
+          }
+          return null;
+        },
         decoration: const InputDecoration(
           hintText: "Description",
           border: InputBorder.none,
+          errorStyle: TextStyle(fontSize: 12),
         ),
       ),
     );

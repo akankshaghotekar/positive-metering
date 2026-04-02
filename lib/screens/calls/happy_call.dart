@@ -18,7 +18,7 @@ class _HappyCallScreenState extends State<HappyCallScreen> {
   /// Static contacts (for now)
   final List<Map<String, String>> contacts = [
     {"name": "Akanksha Ghotekar", "mobile": "8767545099"},
-    {"name": "Rahul Sharma", "mobile": "9876543210"},
+    {"name": "Devendra Deshmane", "mobile": "7040040015"},
     {"name": "Priya Singh", "mobile": "9123456780"},
     {"name": "Vikram Patel", "mobile": "9988776655"},
     {"name": "Sneha Kapoor", "mobile": "9876501234"},

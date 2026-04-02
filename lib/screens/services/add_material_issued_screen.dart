@@ -13,6 +13,8 @@ class AddMaterialIssuedScreen extends StatefulWidget {
 }
 
 class _AddMaterialIssuedScreenState extends State<AddMaterialIssuedScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   DateTime? selectedDate;
   final DateFormat _formatter = DateFormat('dd-MM-yyyy');
 
@@ -46,44 +48,47 @@ class _AddMaterialIssuedScreenState extends State<AddMaterialIssuedScreen> {
             SizedBox(height: 16.h),
 
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(bottom: 20.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _label("Date"),
-                    _dateField(),
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(bottom: 20.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label("Date"),
+                      _dateField(),
 
-                    SizedBox(height: 18.h),
-                    _label("Customer Name"),
-                    _dropdown(
-                      "Customer Name",
-                      customerName,
-                      (v) => setState(() => customerName = v),
-                    ),
+                      SizedBox(height: 18.h),
+                      _label("Customer Name"),
+                      _dropdown(
+                        "Customer Name",
+                        customerName,
+                        (v) => setState(() => customerName = v),
+                      ),
 
-                    SizedBox(height: 18.h),
-                    _label("Issued To"),
-                    _dropdown(
-                      "Select",
-                      issuedTo,
-                      (v) => setState(() => issuedTo = v),
-                    ),
+                      SizedBox(height: 18.h),
+                      _label("Issued To"),
+                      _dropdown(
+                        "Select",
+                        issuedTo,
+                        (v) => setState(() => issuedTo = v),
+                      ),
 
-                    SizedBox(height: 22.h),
+                      SizedBox(height: 22.h),
 
-                    /// MATERIAL TABLE
-                    _materialTable(),
+                      /// MATERIAL TABLE
+                      _materialTable(),
 
-                    SizedBox(height: 12.h),
+                      SizedBox(height: 12.h),
 
-                    /// ADD MORE
-                    _addMoreBtn(),
+                      /// ADD MORE
+                      _addMoreBtn(),
 
-                    SizedBox(height: 20.h),
-                    _label("Comments"),
-                    _textField(commentsCtrl, "Description"),
-                  ],
+                      SizedBox(height: 20.h),
+                      _label("Comments"),
+                      _textField(commentsCtrl, "Description"),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -164,10 +169,20 @@ class _AddMaterialIssuedScreenState extends State<AddMaterialIssuedScreen> {
         borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: AppColor.grey),
       ),
-      child: TextField(
+      child: TextFormField(
         controller: controller,
         maxLines: null,
-        decoration: InputDecoration(hintText: hint, border: InputBorder.none),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return "Comments are required";
+          }
+          return null;
+        },
+        decoration: InputDecoration(
+          hintText: hint,
+          border: InputBorder.none,
+          errorStyle: const TextStyle(fontSize: 12),
+        ),
       ),
     );
   }
@@ -290,18 +305,34 @@ class _AddMaterialIssuedScreenState extends State<AddMaterialIssuedScreen> {
       child: Row(
         children: [
           Expanded(
-            child: Container(
-              height: 46.h,
-              decoration: BoxDecoration(
-                color: AppColor.primaryRed,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                "Save",
-                style: TextStyle(
-                  color: AppColor.white,
-                  fontWeight: FontWeight.w600,
+            child: InkWell(
+              onTap: () {
+                if (_formKey.currentState!.validate()) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        "Material Issued Saved",
+                        style: TextStyle(color: AppColor.white),
+                      ),
+                      backgroundColor: AppColor.primaryRed,
+                    ),
+                  );
+                }
+              },
+              child: Container(
+                height: 46.h,
+                decoration: BoxDecoration(
+                  color: AppColor.primaryRed,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  "Save",
+                  style: TextStyle(
+                    color: AppColor.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),

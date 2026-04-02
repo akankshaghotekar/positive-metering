@@ -52,7 +52,7 @@ class _VendorViewScreenState extends State<VendorViewScreen> {
             /// TITLE
             Center(
               child: Text(
-                "Vendor Details",
+                "Vendor Enlistment Details",
                 style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
               ),
             ),

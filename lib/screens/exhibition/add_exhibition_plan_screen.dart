@@ -13,6 +13,8 @@ class AddExhibitionPlanScreen extends StatefulWidget {
 }
 
 class _AddExhibitionPlanScreenState extends State<AddExhibitionPlanScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   DateTime? selectedDate;
   DateTime? tentativeDate;
 
@@ -51,71 +53,76 @@ class _AddExhibitionPlanScreenState extends State<AddExhibitionPlanScreen> {
             SizedBox(height: 20.h),
 
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(bottom: 20.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _label("Date"),
-                    _dateField(
-                      selectedDate,
-                      "Select Date",
-                      (d) => setState(() => selectedDate = d),
-                    ),
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(bottom: 20.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label("Date"),
+                      _dateField(
+                        selectedDate,
+                        "Select Date",
+                        (d) => setState(() => selectedDate = d),
+                      ),
 
-                    SizedBox(height: 18.h),
-                    _label("Exhibition Name"),
-                    _textField(exhibitionCtrl, "Enter Name"),
+                      SizedBox(height: 18.h),
+                      _label("Exhibition Name"),
+                      _textField(exhibitionCtrl, "Enter Name"),
 
-                    SizedBox(height: 18.h),
-                    _label("Location"),
-                    _textField(locationCtrl, "Enter the Location"),
+                      SizedBox(height: 18.h),
+                      _label("Location"),
+                      _textField(locationCtrl, "Enter the Location"),
 
-                    SizedBox(height: 18.h),
-                    _label("Tentative Date"),
-                    _dateField(
-                      tentativeDate,
-                      "Select Date",
-                      (d) => setState(() => tentativeDate = d),
-                    ),
+                      SizedBox(height: 18.h),
+                      _label("Tentative Date"),
+                      _dateField(
+                        tentativeDate,
+                        "Select Date",
+                        (d) => setState(() => tentativeDate = d),
+                      ),
 
-                    SizedBox(height: 18.h),
-                    _label("Comments"),
-                    _commentsField(),
+                      SizedBox(height: 18.h),
+                      _label("Comments"),
+                      _commentsField(),
 
-                    SizedBox(height: 18.h),
-                    _label("Person Type"),
-                    _dropdown(
-                      "Select the Type",
-                      personType,
-                      (v) => setState(() => personType = v),
-                    ),
+                      SizedBox(height: 18.h),
+                      _label("Person Type"),
+                      _dropdown(
+                        "Select the Type",
+                        personType,
+                        (v) => setState(() => personType = v),
+                      ),
 
-                    SizedBox(height: 30.h),
+                      SizedBox(height: 30.h),
 
-                    /// ACTION BUTTONS
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _actionButton(
-                            text: "Save",
-                            color: AppColor.primaryRed,
-                            onTap: () {
-                              Navigator.pop(context);
-                            },
+                      /// ACTION BUTTONS
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _actionButton(
+                              text: "Save",
+                              color: AppColor.primaryRed,
+                              onTap: () {
+                                if (_formKey.currentState!.validate()) {
+                                  Navigator.pop(context);
+                                }
+                              },
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: _actionButton(
-                            text: "Reset",
-                            color: AppColor.primaryBlue,
-                            onTap: _resetForm,
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: _actionButton(
+                              text: "Reset",
+                              color: AppColor.primaryBlue,
+                              onTap: _resetForm,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -161,12 +168,19 @@ class _AddExhibitionPlanScreenState extends State<AddExhibitionPlanScreen> {
         borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: AppColor.grey),
       ),
-      child: TextField(
+      child: TextFormField(
         controller: commentsCtrl,
         maxLines: null,
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return "Comments are required";
+          }
+          return null;
+        },
         decoration: const InputDecoration(
           hintText: "Description",
           border: InputBorder.none,
+          errorStyle: TextStyle(fontSize: 12),
         ),
       ),
     );

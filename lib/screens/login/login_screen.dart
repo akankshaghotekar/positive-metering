@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:positive_metering/api/api_service.dart';
+import 'package:positive_metering/screens/home/home_screen.dart';
 import 'package:positive_metering/screens/login/otp/otp_screen.dart';
+import 'package:positive_metering/shared_pref/app_pref.dart';
 import 'package:positive_metering/utils/animation_helper/animated_page_route.dart';
 import 'package:positive_metering/utils/app_colors.dart';
 import 'package:positive_metering/utils/widgets/common_button.dart';
@@ -14,12 +17,52 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController mobileController = TextEditingController();
+  final TextEditingController otpController = TextEditingController();
+
+  bool isOtpSent = false;
+  bool isLoading = false;
+
+  void handleSendOtp() async {
+    setState(() => isLoading = true);
+
+    bool success = await ApiService.sendOtp(emailController.text.trim());
+
+    setState(() => isLoading = false);
+
+    if (success) {
+      setState(() => isOtpSent = true);
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to send OTP")));
+    }
+  }
+
+  void handleLogin() async {
+    setState(() => isLoading = true);
+
+    final user = await ApiService.login(
+      email: emailController.text.trim(),
+      otp: otpController.text.trim(),
+    );
+
+    setState(() => isLoading = false);
+
+    if (user != null) {
+      await AppPref.saveUser(user);
+
+      Navigator.pushReplacement(context, AnimatedPageRoute(page: HomeScreen()));
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Login Failed")));
+    }
+  }
 
   @override
   void dispose() {
     emailController.dispose();
-    mobileController.dispose();
+    otpController.dispose();
     super.dispose();
   }
 
@@ -55,29 +98,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   hint: "Enter your email",
                   keyboardType: TextInputType.emailAddress,
                 ),
+                if (isOtpSent) ...[
+                  SizedBox(height: 20.h),
 
-                SizedBox(height: 20.h),
+                  _titleText("Enter OTP"),
+                  SizedBox(height: 6.h),
 
-                /// Mobile
-                _titleText("Mobile No"),
-                SizedBox(height: 6.h),
-                _inputField(
-                  controller: mobileController,
-                  hint: "Enter your mobile No",
-                  keyboardType: TextInputType.phone,
-                ),
+                  _inputField(
+                    controller: otpController,
+                    hint: "Enter OTP",
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
 
                 SizedBox(height: 50.h),
 
                 /// Submit Button
                 CommonButton(
-                  title: "Send OTP",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      AnimatedPageRoute(page: const OtpScreen()),
-                    );
-                  },
+                  title: isOtpSent ? "Login" : "Send OTP",
+                  onTap: isOtpSent ? handleLogin : handleSendOtp,
+                  isLoading: isLoading,
                 ),
 
                 SizedBox(height: 30.h),

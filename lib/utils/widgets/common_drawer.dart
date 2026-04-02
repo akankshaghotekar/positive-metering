@@ -14,6 +14,7 @@ import 'package:positive_metering/screens/plan/tour_plan_yearly/tour_plan_yearly
 import 'package:positive_metering/screens/project_opportunity/project_opportunity_screen.dart';
 import 'package:positive_metering/screens/services/service_call_screen.dart';
 import 'package:positive_metering/screens/vendor_view/vendor_view_screen.dart';
+import 'package:positive_metering/shared_pref/app_pref.dart';
 import 'package:positive_metering/utils/animation_helper/animated_page_route.dart';
 import 'package:positive_metering/utils/app_colors.dart';
 
@@ -22,7 +23,7 @@ class CommonDrawer extends StatelessWidget {
 
   const CommonDrawer({super.key, required this.onClose});
 
-  void _navigate(BuildContext context, String menu) {
+  void _navigate(BuildContext context, String menu) async {
     Navigator.pop(context);
 
     switch (menu) {
@@ -92,7 +93,7 @@ class CommonDrawer extends StatelessWidget {
           AnimatedPageRoute(page: ProjectOpportunityScreen()),
         );
         break;
-      case "Vender View":
+      case "Vender Enlistment":
         Navigator.pushReplacement(
           context,
           AnimatedPageRoute(page: VendorViewScreen()),
@@ -112,6 +113,7 @@ class CommonDrawer extends StatelessWidget {
         break;
 
       case "Logout":
+        await AppPref.logout();
         Navigator.pushAndRemoveUntil(
           context,
           AnimatedPageRoute(page: const LoginScreen()),
@@ -164,9 +166,10 @@ class CommonDrawer extends StatelessWidget {
               ),
             ),
             Divider(color: AppColor.black, thickness: 1.h),
+            _drawerItem(context, Icons.map_outlined, "Tour Plan RMM"),
 
             _drawerItem(context, Icons.list_alt_outlined, "Tour Plan Yearly"),
-            _drawerItem(context, Icons.map_outlined, "Tour Plan RMM"),
+
             _drawerItem(context, Icons.question_answer_outlined, "Enquiry"),
             _drawerItem(context, Icons.update_outlined, "Follow-up"),
 
@@ -180,7 +183,11 @@ class CommonDrawer extends StatelessWidget {
               Icons.business_center_outlined,
               "Project Opportunity",
             ),
-            _drawerItem(context, Icons.store_mall_directory, "Vender View"),
+            _drawerItem(
+              context,
+              Icons.store_mall_directory,
+              "Vender Enlistment",
+            ),
             _drawerItem(context, Icons.people_alt_sharp, "Customer Master"),
             _drawerItem(context, Icons.call_outlined, "Happy Call"),
 

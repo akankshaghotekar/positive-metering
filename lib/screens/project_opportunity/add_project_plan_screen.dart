@@ -12,6 +12,8 @@ class AddProjectPlanScreen extends StatefulWidget {
 }
 
 class _AddProjectPlanScreenState extends State<AddProjectPlanScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   DateTime? date;
   DateTime? startDate;
 
@@ -53,74 +55,97 @@ class _AddProjectPlanScreenState extends State<AddProjectPlanScreen> {
 
             /// FORM
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _label("Date"),
-                    _dateField(date, (d) => setState(() => date = d)),
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label("Date"),
+                      _dateField(date, (d) => setState(() => date = d)),
 
-                    SizedBox(height: 18.h),
-                    _label("Project Name"),
-                    _textField(projectNameCtrl, "Enter Name"),
+                      SizedBox(height: 18.h),
+                      _label("Project Name"),
+                      _textField(projectNameCtrl, "Enter Name"),
 
-                    SizedBox(height: 18.h),
-                    _label("Product Applicable"),
-                    _textField(productCtrl, "Enter the product applicable"),
+                      SizedBox(height: 18.h),
+                      _label("Product Applicable"),
+                      _textField(productCtrl, "Enter the product applicable"),
 
-                    SizedBox(height: 18.h),
-                    _label("Start Date"),
-                    _dateField(startDate, (d) => setState(() => startDate = d)),
+                      SizedBox(height: 18.h),
+                      _label("Start Date"),
+                      _dateField(
+                        startDate,
+                        (d) => setState(() => startDate = d),
+                      ),
 
-                    SizedBox(height: 18.h),
-                    _label("Comments"),
-                    _commentField(),
+                      SizedBox(height: 18.h),
+                      _label("Comments"),
+                      _commentField(),
 
-                    SizedBox(height: 30.h),
+                      SizedBox(height: 30.h),
 
-                    /// ACTION BUTTONS
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 46.h,
-                            decoration: BoxDecoration(
-                              color: AppColor.primaryRed,
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              "Save",
-                              style: TextStyle(
-                                color: AppColor.white,
-                                fontWeight: FontWeight.w600,
+                      /// ACTION BUTTONS
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () {
+                                if (_formKey.currentState!.validate()) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Project Plan Saved",
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      backgroundColor: AppColor.primaryRed,
+                                    ),
+                                  );
+
+                                  Navigator.pop(context);
+                                }
+                              },
+                              child: Container(
+                                height: 46.h,
+                                decoration: BoxDecoration(
+                                  color: AppColor.primaryRed,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  "Save",
+                                  style: TextStyle(
+                                    color: AppColor.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Container(
-                            height: 46.h,
-                            decoration: BoxDecoration(
-                              color: AppColor.primaryBlue,
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              "Reset",
-                              style: TextStyle(
-                                color: AppColor.white,
-                                fontWeight: FontWeight.w600,
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: Container(
+                              height: 46.h,
+                              decoration: BoxDecoration(
+                                color: AppColor.primaryBlue,
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                "Reset",
+                                style: TextStyle(
+                                  color: AppColor.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
 
-                    SizedBox(height: 20.h),
-                  ],
+                      SizedBox(height: 20.h),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -207,12 +232,19 @@ class _AddProjectPlanScreenState extends State<AddProjectPlanScreen> {
         borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: AppColor.grey),
       ),
-      child: TextField(
+      child: TextFormField(
         controller: commentsCtrl,
         maxLines: null,
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return "Comments are required";
+          }
+          return null;
+        },
         decoration: const InputDecoration(
           hintText: "Description",
           border: InputBorder.none,
+          errorStyle: TextStyle(fontSize: 12),
         ),
       ),
     );

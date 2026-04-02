@@ -15,6 +15,8 @@ class ClientComplaintScreen extends StatefulWidget {
 }
 
 class _ClientComplaintScreenState extends State<ClientComplaintScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   DateTime? selectedDate;
   final DateFormat _formatter = DateFormat('dd-MM-yyyy');
 
@@ -51,69 +53,76 @@ class _ClientComplaintScreenState extends State<ClientComplaintScreen> {
             SizedBox(height: 16.h),
 
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(bottom: 20.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _label("Date"),
-                    _dateField(),
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(bottom: 20.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label("Date"),
+                      _dateField(),
 
-                    SizedBox(height: 18.h),
-                    _label("Name"),
-                    _dropdown(
-                      "Select the Region",
-                      name,
-                      (v) => setState(() => name = v),
-                    ),
+                      SizedBox(height: 18.h),
+                      _label("Name"),
+                      _dropdown(
+                        "Select the Region",
+                        name,
+                        (v) => setState(() => name = v),
+                      ),
 
-                    SizedBox(height: 18.h),
-                    _label("Products"),
-                    _dropdown(
-                      "Select the Products",
-                      product,
-                      (v) => setState(() => product = v),
-                    ),
+                      SizedBox(height: 18.h),
+                      _label("Products"),
+                      _dropdown(
+                        "Select the Products",
+                        product,
+                        (v) => setState(() => product = v),
+                      ),
 
-                    SizedBox(height: 18.h),
-                    _label("Issues"),
-                    _textField(issueCtrl, "Enter Issue"),
+                      SizedBox(height: 18.h),
+                      _label("Issues"),
+                      _textField(issueCtrl, "Enter Issue"),
 
-                    SizedBox(height: 18.h),
-                    _label("Comments"),
-                    _textField(commentsCtrl, "Description"),
+                      SizedBox(height: 18.h),
+                      _label("Comments"),
+                      _textField(commentsCtrl, "Description"),
 
-                    SizedBox(height: 26.h),
+                      SizedBox(height: 26.h),
 
-                    /// EXTRA ACTION BUTTONS
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _outlineButton(
-                            "Material Issued",
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                AnimatedPageRoute(page: MaterialIssuedScreen()),
-                              );
-                            },
+                      /// EXTRA ACTION BUTTONS
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _outlineButton(
+                              "Material Issued",
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  AnimatedPageRoute(
+                                    page: MaterialIssuedScreen(),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: _outlineButton(
-                            "Service History",
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                AnimatedPageRoute(page: ServiceHistoryScreen()),
-                              );
-                            },
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: _outlineButton(
+                              "Service History",
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  AnimatedPageRoute(
+                                    page: ServiceHistoryScreen(),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -195,10 +204,21 @@ class _ClientComplaintScreenState extends State<ClientComplaintScreen> {
         borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: AppColor.grey),
       ),
-      child: TextField(
+      child: TextFormField(
         controller: controller,
         maxLines: null,
-        decoration: InputDecoration(hintText: hint, border: InputBorder.none),
+        validator: (value) {
+          if (controller == commentsCtrl &&
+              (value == null || value.trim().isEmpty)) {
+            return "Comments are required";
+          }
+          return null;
+        },
+        decoration: InputDecoration(
+          hintText: hint,
+          border: InputBorder.none,
+          errorStyle: const TextStyle(fontSize: 12),
+        ),
       ),
     );
   }
@@ -259,18 +279,29 @@ class _ClientComplaintScreenState extends State<ClientComplaintScreen> {
       child: Row(
         children: [
           Expanded(
-            child: Container(
-              height: 46.h,
-              decoration: BoxDecoration(
-                color: AppColor.primaryRed,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                "Save",
-                style: TextStyle(
-                  color: AppColor.white,
-                  fontWeight: FontWeight.w600,
+            child: InkWell(
+              onTap: () {
+                if (_formKey.currentState!.validate()) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Complaint Saved")),
+                  );
+
+                  Navigator.pop(context);
+                }
+              },
+              child: Container(
+                height: 46.h,
+                decoration: BoxDecoration(
+                  color: AppColor.primaryRed,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  "Save",
+                  style: TextStyle(
+                    color: AppColor.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:positive_metering/api/api_service.dart';
+import 'package:positive_metering/model/tour_plan_model.dart';
 import 'package:positive_metering/screens/plan/add_tour_plan_screen.dart';
 import 'package:positive_metering/screens/plan/add_tour_plan_yearly_screen.dart';
 import 'package:positive_metering/screens/plan/mark_visit/mark_visit_screen.dart';
+import 'package:positive_metering/shared_pref/app_pref.dart';
 import 'package:positive_metering/utils/animation_helper/animated_page_route.dart';
 import 'package:positive_metering/utils/app_colors.dart';
 import 'package:positive_metering/utils/widgets/common_app_bar.dart';
@@ -23,14 +26,41 @@ class PlanScreen extends StatefulWidget {
 class _PlanScreenState extends State<PlanScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  List<TourPlanModel> tourList = [];
+  bool isLoading = false;
+
   late PlanType selectedType;
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
+
+  String formatDate(DateTime date) {
+    return "${date.day.toString().padLeft(2, '0')}-"
+        "${date.month.toString().padLeft(2, '0')}-"
+        "${date.year}";
+  }
+
+  Future<void> fetchTourPlan() async {
+    setState(() => isLoading = true);
+
+    final userSrNo = await AppPref.getUserSrNo();
+
+    final data = await ApiService.getTourPlan(
+      userSrNo: userSrNo ?? "",
+      billDate: formatDate(_selectedDay),
+      tourType: selectedType == PlanType.tour ? "Tour" : "Lean",
+    );
+
+    setState(() {
+      tourList = data;
+      isLoading = false;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     selectedType = widget.initialTab;
+    fetchTourPlan();
   }
 
   @override
@@ -52,39 +82,74 @@ class _PlanScreenState extends State<PlanScreen> {
           );
         },
       ),
-      body: Column(
-        children: [
-          SizedBox(height: 10.h),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            SizedBox(height: 10.h),
 
-          /// TITLE
-          Text(
-            isTour ? "Tour Plan" : "Lean Plan",
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
-          ),
-
-          SizedBox(height: 10.h),
-
-          /// TOGGLE
-          _planToggle(),
-
-          SizedBox(height: 10.h),
-
-          /// CALENDAR
-          _calendar(),
-
-          SizedBox(height: 12.h),
-
-          /// BUTTON BAR
-          _planBar(isTour),
-
-          /// LIST
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.all(16.w),
-              children: isTour ? _tourList() : _leanList(),
+            /// TITLE
+            Text(
+              isTour ? "Tour Plan" : "Lean Plan",
+              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
             ),
-          ),
-        ],
+
+            SizedBox(height: 10.h),
+
+            /// TOGGLE
+            _planToggle(),
+
+            SizedBox(height: 10.h),
+
+            /// CALENDAR
+            _calendar(),
+
+            SizedBox(height: 12.h),
+
+            /// BUTTON BAR
+            _planBar(isTour),
+
+            /// LIST
+            ListView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.all(16.w),
+              children: isLoading
+                  ? [
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.w),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                    ]
+                  : tourList.isEmpty
+                  ? [
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.w),
+                          child: Text("No Data Found"),
+                        ),
+                      ),
+                    ]
+                  : tourList.map((item) {
+                      return _PlanCard(
+                        companyName: item.companyName,
+                        regionName: item.regionName,
+                        status: item.status,
+
+                        color: item.status == "Approved"
+                            ? AppColor.primaryRed
+                            : AppColor.primaryBlue,
+                        comments: {
+                          "Kajal": item.kajal ?? "",
+                          "Ravi": item.ravi ?? "",
+                          "Malhar": item.malhar ?? "",
+                        },
+                      );
+                    }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -115,7 +180,10 @@ class _PlanScreenState extends State<PlanScreen> {
 
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => selectedType = type),
+        onTap: () {
+          setState(() => selectedType = type);
+          fetchTourPlan();
+        },
         borderRadius: BorderRadius.circular(30.r),
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 10.h),
@@ -150,11 +218,15 @@ class _PlanScreenState extends State<PlanScreen> {
         selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
         calendarFormat: CalendarFormat.month,
         availableGestures: AvailableGestures.none,
+        rowHeight: 36.h,
+        daysOfWeekHeight: 18.h,
+
         onDaySelected: (selectedDay, focusedDay) {
           setState(() {
             _selectedDay = selectedDay;
             _focusedDay = focusedDay;
           });
+          fetchTourPlan();
         },
         headerStyle: HeaderStyle(
           titleCentered: true,
@@ -201,29 +273,6 @@ class _PlanScreenState extends State<PlanScreen> {
       ),
     );
   }
-
-  // ------------------------------------------------------------------
-  // LIST DATA
-  // ------------------------------------------------------------------
-
-  List<Widget> _tourList() => const [
-    _PlanCard(
-      status: "Approved",
-      color: AppColor.primaryRed,
-      comments: {"Kajal": "Client confirmed visit", "Ravi": "Documents ready"},
-    ),
-    _PlanCard(status: "Pending", color: AppColor.primaryBlue),
-  ];
-
-  List<Widget> _leanList() => const [
-    _PlanCard(
-      status: "Approved",
-      color: AppColor.primaryRed,
-      showCall: true,
-      comments: {"Malhar": "Call completed"},
-    ),
-    _PlanCard(status: "Visit", color: AppColor.primaryBlue),
-  ];
 }
 
 class _PlanCard extends StatelessWidget {
@@ -231,12 +280,16 @@ class _PlanCard extends StatelessWidget {
   final Color color;
   final bool showCall;
   final Map<String, String>? comments;
+  final String companyName;
+  final String regionName;
 
   const _PlanCard({
     required this.status,
     required this.color,
     this.showCall = false,
     this.comments,
+    required this.companyName,
+    required this.regionName,
   });
 
   @override
@@ -293,7 +346,7 @@ class _PlanCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Company Name: xyz",
+                      "Company Name: ${companyName}",
                       style: TextStyle(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w600,
@@ -312,7 +365,7 @@ class _PlanCard extends StatelessWidget {
                         ),
                         SizedBox(width: 4.w),
                         Text(
-                          "Region: Nashik",
+                          "Region: ${regionName}",
                           style: TextStyle(
                             fontSize: 13.sp,
                             color: AppColor.grey,

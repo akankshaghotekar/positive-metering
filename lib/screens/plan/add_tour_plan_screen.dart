@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:positive_metering/api/api_service.dart';
+import 'package:positive_metering/model/common_model.dart';
+import 'package:positive_metering/model/customer_model.dart';
 import 'package:positive_metering/screens/plan/lean_plan/lean_plan_screen.dart';
 import 'package:positive_metering/screens/plan/tour_plan/tour_plan_screen.dart';
+import 'package:positive_metering/shared_pref/app_pref.dart';
 import 'package:positive_metering/utils/animation_helper/animated_page_route.dart';
 import 'package:positive_metering/utils/app_colors.dart';
 import 'package:positive_metering/utils/widgets/add_customer_popup.dart';
@@ -18,6 +22,41 @@ class AddTourPlanScreen extends StatefulWidget {
 class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
   DateTime? selectedDate;
   final DateFormat _formatter = DateFormat('dd-MM-yyyy');
+
+  bool isSaving = false;
+
+  List<CustomerModel> customerList = [];
+  List<CommonModel> regionList = [];
+  List<CommonModel> typeList = [];
+  List<CommonModel> groupList = [];
+
+  CustomerModel? selectedCustomer;
+
+  String? selectedRegionId;
+  String? selectedTypeId;
+  String? selectedGroupId;
+
+  @override
+  void initState() {
+    super.initState();
+    loadData();
+  }
+
+  Future<void> loadData() async {
+    final user = await AppPref.getUser();
+
+    customerList = await ApiService.getCustomerList(
+      userSrNo: user?['usersrno'],
+      regionSrNo: user?['region_srno'],
+      subregionSrNo: user?['subregion_srno'],
+    );
+
+    regionList = await ApiService.getRegion();
+    typeList = await ApiService.getCustomerType();
+    groupList = await ApiService.getGroup();
+
+    setState(() {});
+  }
 
   String? customerName;
   String? tourType;
@@ -52,34 +91,76 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
         customerName = result;
       });
     }
+
+    setState(() {
+      customerName = result;
+    });
   }
 
-  void _onSaveTap() {
-    if (tourType == null) {
+  void _onSaveTap() async {
+    if (selectedCustomer == null ||
+        selectedDate == null ||
+        tourType == null ||
+        visitCall == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Please select Tour Type"),
-          backgroundColor: AppColor.primaryRed,
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(16.w),
-        ),
+        SnackBar(content: Text("Please fill all required fields")),
       );
       return;
     }
 
-    if (tourType == "Tour") {
+    setState(() => isSaving = true); // 🔥 START LOADING
+
+    final userSrNo = await AppPref.getUserSrNo();
+
+    final success = await ApiService.addTourPlan(
+      userSrNo: userSrNo ?? "",
+      customerSrNo: selectedCustomer!.customerSrNo,
+      billDate: _formatter.format(selectedDate!),
+      tourType: tourType!,
+      visitCall: visitCall!,
+    );
+
+    setState(() => isSaving = false); // 🔥 STOP LOADING
+
+    if (success) {
       Navigator.pushAndRemoveUntil(
         context,
-        AnimatedPageRoute(page: const PlanScreen(initialTab: PlanType.tour)),
+        AnimatedPageRoute(
+          page: PlanScreen(
+            initialTab: tourType == "Tour" ? PlanType.tour : PlanType.lean,
+          ),
+        ),
         (route) => false,
       );
     } else {
-      Navigator.pushAndRemoveUntil(
+      ScaffoldMessenger.of(
         context,
-        AnimatedPageRoute(page: const PlanScreen(initialTab: PlanType.lean)),
-        (route) => false,
-      );
+      ).showSnackBar(SnackBar(content: Text("Failed to save")));
     }
+  }
+
+  void _resetForm() {
+    setState(() {
+      selectedDate = null;
+
+      selectedCustomer = null;
+      customerName = null;
+
+      tourType = null;
+      visitCall = null;
+
+      region = null;
+      customerType = null;
+      group = null;
+
+      selectedRegionId = null;
+      selectedTypeId = null;
+      selectedGroupId = null;
+
+      companyCtrl.clear();
+      nameCtrl.clear();
+      mobileCtrl.clear();
+    });
   }
 
   @override
@@ -122,16 +203,48 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
                     _label("Customer Name"),
                     _dropdown(
                       "Select Customer",
-                      customers.contains(customerName) ? customerName : null,
+                      customerName,
                       (v) {
                         if (v == "Add New") {
                           _openAddCustomerPopup();
-                        } else {
-                          setState(() => customerName = v);
+                          return;
                         }
+
+                        final customer = customerList.firstWhere(
+                          (e) => e.customerName.trim() == v?.trim(),
+                        );
+                        setState(() {
+                          selectedCustomer = customer;
+                          customerName = v;
+
+                          companyCtrl.text = customer.companyName;
+                          nameCtrl.text = customer.customerName;
+                          mobileCtrl.text = customer.mobileNo;
+
+                          selectedRegionId = customer.regionSrNo;
+                          selectedTypeId = customer.customerTypeSrNo;
+                          selectedGroupId = customer.groupSrNo;
+
+                          region = regionList
+                              .firstWhere((e) => e.id == selectedRegionId)
+                              .name
+                              .trim();
+
+                          customerType = typeList
+                              .firstWhere((e) => e.id == selectedTypeId)
+                              .name
+                              .trim();
+
+                          group = groupList
+                              .firstWhere((e) => e.id == selectedGroupId)
+                              .name
+                              .trim();
+                        });
                       },
-                      items: customers,
-                      displayValue: customerName,
+                      items: [
+                        "Add New",
+                        ...customerList.map((e) => e.customerName),
+                      ],
                     ),
 
                     SizedBox(height: 18.h),
@@ -149,6 +262,7 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
                       "Select the Visit/Call",
                       visitCall,
                       (v) => setState(() => visitCall = v),
+                      items: const ["Visit", "Call"],
                     ),
 
                     SizedBox(height: 18.h),
@@ -168,7 +282,16 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
                     _dropdown(
                       "Select the Region",
                       region,
-                      (v) => setState(() => region = v),
+                      (v) {
+                        final selected = regionList.firstWhere(
+                          (e) => e.name == v,
+                        );
+                        setState(() {
+                          region = v;
+                          selectedRegionId = selected.id;
+                        });
+                      },
+                      items: regionList.map((e) => e.name).toList(),
                     ),
 
                     SizedBox(height: 18.h),
@@ -176,7 +299,16 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
                     _dropdown(
                       "Select the type",
                       customerType,
-                      (v) => setState(() => customerType = v),
+                      (v) {
+                        final selected = typeList.firstWhere(
+                          (e) => e.name == v,
+                        );
+                        setState(() {
+                          customerType = v;
+                          selectedTypeId = selected.id;
+                        });
+                      },
+                      items: typeList.map((e) => e.name).toList(),
                     ),
 
                     SizedBox(height: 18.h),
@@ -184,7 +316,16 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
                     _dropdown(
                       "Select the Group",
                       group,
-                      (v) => setState(() => group = v),
+                      (v) {
+                        final selected = groupList.firstWhere(
+                          (e) => e.name == v,
+                        );
+                        setState(() {
+                          group = v;
+                          selectedGroupId = selected.id;
+                        });
+                      },
+                      items: groupList.map((e) => e.name).toList(),
                     ),
                   ],
                 ),
@@ -237,9 +378,12 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
     String? value,
     Function(String?) onChanged, {
     List<String>? items,
-    String? displayValue,
   }) {
     final dropdownItems = items ?? ["Option 1", "Option 2", "Option 3"];
+
+    /// 🔥 CLEAN VALUES (important)
+    final cleanItems = dropdownItems.map((e) => e.trim()).toList();
+    final cleanValue = value?.trim();
 
     return Container(
       height: 46.h,
@@ -251,12 +395,10 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: items != null && items.contains(value) ? value : null,
-
-          hint: Text(displayValue ?? hint),
-
+          value: cleanItems.contains(cleanValue) ? cleanValue : null,
+          hint: Text(hint),
           isExpanded: true,
-          items: dropdownItems
+          items: cleanItems
               .map((e) => DropdownMenuItem(value: e, child: Text(e)))
               .toList(),
           onChanged: onChanged,
@@ -313,7 +455,7 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
         children: [
           Expanded(
             child: InkWell(
-              onTap: _onSaveTap,
+              onTap: isSaving ? null : _onSaveTap,
               child: Container(
                 height: 46.h,
                 decoration: BoxDecoration(
@@ -321,30 +463,42 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  "Save",
-                  style: TextStyle(
-                    color: AppColor.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: isSaving
+                    ? SizedBox(
+                        height: 20.h,
+                        width: 20.h,
+                        child: CircularProgressIndicator(
+                          color: AppColor.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        "Save",
+                        style: TextStyle(
+                          color: AppColor.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ),
           SizedBox(width: 16.w),
           Expanded(
-            child: Container(
-              height: 46.h,
-              decoration: BoxDecoration(
-                color: AppColor.primaryBlue,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                "Reset",
-                style: TextStyle(
-                  color: AppColor.white,
-                  fontWeight: FontWeight.w600,
+            child: InkWell(
+              onTap: _resetForm,
+              child: Container(
+                height: 46.h,
+                decoration: BoxDecoration(
+                  color: AppColor.primaryBlue,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  "Reset",
+                  style: TextStyle(
+                    color: AppColor.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),

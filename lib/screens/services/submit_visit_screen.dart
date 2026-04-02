@@ -15,6 +15,8 @@ class SubmitVisitScreen extends StatefulWidget {
 }
 
 class _SubmitVisitScreenState extends State<SubmitVisitScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   final TextEditingController commentsCtrl = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   File? _capturedImage;
@@ -70,111 +72,121 @@ class _SubmitVisitScreenState extends State<SubmitVisitScreen> {
             SizedBox(height: 24.h),
 
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    /// IMAGE UPLOAD BOX
-                    GestureDetector(
-                      onTap: _openCamera,
-                      child: Container(
-                        height: 120.h,
-                        width: double.infinity,
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      /// IMAGE UPLOAD BOX
+                      GestureDetector(
+                        onTap: _openCamera,
+                        child: Container(
+                          height: 120.h,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: AppColor.lightGrey.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(10.r),
+                            border: Border.all(
+                              color: AppColor.grey.withOpacity(0.5),
+                              style: BorderStyle.solid,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(left: 16.w),
+                                child: Text(
+                                  "Click the photo of an\nIssues",
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    color: AppColor.textDark,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(right: 20.w),
+                                child: Container(
+                                  padding: EdgeInsets.all(14.w),
+                                  decoration: BoxDecoration(
+                                    color: AppColor.primaryBlue,
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                  child: Icon(
+                                    Icons.camera_alt,
+                                    color: AppColor.white,
+                                    size: 28.sp,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 24.h),
+
+                      /// COMMENTS
+                      Text(
+                        "Comments",
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 6.h),
+                      Container(
+                        height: 80.h,
+                        padding: EdgeInsets.symmetric(horizontal: 14.w),
                         decoration: BoxDecoration(
-                          color: AppColor.lightGrey.withOpacity(0.6),
                           borderRadius: BorderRadius.circular(10.r),
-                          border: Border.all(
-                            color: AppColor.grey.withOpacity(0.5),
-                            style: BorderStyle.solid,
+                          border: Border.all(color: AppColor.grey),
+                        ),
+                        child: TextFormField(
+                          controller: commentsCtrl,
+                          maxLines: null,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return "Comments are required";
+                            }
+                            return null;
+                          },
+                          decoration: const InputDecoration(
+                            hintText: "Description",
+                            border: InputBorder.none,
+                            errorStyle: TextStyle(fontSize: 12),
                           ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Padding(
-                              padding: EdgeInsets.only(left: 16.w),
-                              child: Text(
-                                "Click the photo of an\nIssues",
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  color: AppColor.textDark,
-                                ),
-                              ),
+                      ),
+
+                      SizedBox(height: 30.h),
+
+                      /// SUBMIT BUTTON
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46.h,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColor.primaryRed,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.r),
                             ),
-                            Padding(
-                              padding: EdgeInsets.only(right: 20.w),
-                              child: Container(
-                                padding: EdgeInsets.all(14.w),
-                                decoration: BoxDecoration(
-                                  color: AppColor.primaryBlue,
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                                child: Icon(
-                                  Icons.camera_alt,
-                                  color: AppColor.white,
-                                  size: 28.sp,
-                                ),
-                              ),
+                          ),
+                          onPressed: _onSubmit,
+                          child: const Text(
+                            "Submit",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: AppColor.white,
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 24.h),
-
-                    /// COMMENTS
-                    Text(
-                      "Comments",
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: 6.h),
-                    Container(
-                      height: 80.h,
-                      padding: EdgeInsets.symmetric(horizontal: 14.w),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10.r),
-                        border: Border.all(color: AppColor.grey),
-                      ),
-                      child: TextField(
-                        controller: commentsCtrl,
-                        maxLines: null,
-                        decoration: const InputDecoration(
-                          hintText: "Description",
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 30.h),
-
-                    /// SUBMIT BUTTON
-                    SizedBox(
-                      width: double.infinity,
-                      height: 46.h,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColor.primaryRed,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                        ),
-                        onPressed: _onSubmit,
-                        child: const Text(
-                          "Submit",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: AppColor.white,
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 20.h),
-                  ],
+                      SizedBox(height: 20.h),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -186,6 +198,10 @@ class _SubmitVisitScreenState extends State<SubmitVisitScreen> {
 
   /// SUBMIT HANDLER
   void _onSubmit() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => HomeScreen()),

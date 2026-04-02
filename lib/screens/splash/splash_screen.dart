@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:positive_metering/screens/home/home_screen.dart';
 import 'package:positive_metering/screens/login/login_screen.dart';
+import 'package:positive_metering/shared_pref/app_pref.dart';
 import 'package:positive_metering/utils/animation_helper/animated_page_route.dart';
 import 'package:positive_metering/utils/app_colors.dart';
 
@@ -40,10 +42,12 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     /// Future navigation can be added here
-    Timer(const Duration(seconds: 2), () {
+    Timer(const Duration(seconds: 2), () async {
+      bool isLogin = await AppPref.isLoggedIn();
+
       Navigator.pushReplacement(
         context,
-        AnimatedPageRoute(page: const LoginScreen()),
+        AnimatedPageRoute(page: isLogin ? HomeScreen() : const LoginScreen()),
       );
     });
   }
