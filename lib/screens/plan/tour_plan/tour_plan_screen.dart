@@ -138,7 +138,9 @@ class _PlanScreenState extends State<PlanScreen> {
                         status: item.status,
 
                         color: item.status == "Approved"
-                            ? AppColor.primaryRed
+                            ? AppColor.green
+                            : item.status == "Rejected"
+                            ? Colors.red
                             : AppColor.primaryBlue,
                         comments: {
                           "Kajal": item.kajal ?? "",

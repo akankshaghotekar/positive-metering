@@ -48,7 +48,7 @@ class _TourPlanYearlyScreenState extends State<TourPlanYearlyScreen> {
     });
   }
 
-  String selectedType = "All";
+  String selectedType = "Tour";
   DateTime fromDate = DateTime.now();
   DateTime toDate = DateTime.now();
 
@@ -196,7 +196,7 @@ class _TourPlanYearlyScreenState extends State<TourPlanYearlyScreen> {
   }
 
   Widget _dropdown() {
-    final items = ["All", "Tour", "Lean"];
+    final items = ["Tour", "Lean"];
 
     return Container(
       height: 46.h,
@@ -286,6 +286,11 @@ class _TourPlanYearlyScreenState extends State<TourPlanYearlyScreen> {
 
   Widget _planCard(Map<String, dynamic> data) {
     final List<String> allCommenters = ["Kajal", "Ravi", "Malhar"];
+    final statusColor = data["status"] == "Approved"
+        ? AppColor.green
+        : data["status"] == "Rejected"
+        ? Colors.red
+        : Colors.black;
     final Map<String, String> comments =
         (data["comments"] as Map<String, String>?) ?? {};
 
@@ -421,14 +426,14 @@ class _TourPlanYearlyScreenState extends State<TourPlanYearlyScreen> {
                       vertical: 4.h,
                     ),
                     decoration: BoxDecoration(
-                      color: chipColor.withOpacity(0.15),
+                      color: statusColor.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(color: chipColor),
+                      border: Border.all(color: statusColor),
                     ),
                     child: Text(
                       data["status"]!,
                       style: TextStyle(
-                        color: chipColor,
+                        color: statusColor,
                         fontWeight: FontWeight.w600,
                         fontSize: 12.sp,
                       ),

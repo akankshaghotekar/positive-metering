@@ -166,50 +166,66 @@ class _AddTourPlanYearlyScreenState extends State<AddTourPlanYearlyScreen> {
                     SizedBox(height: 18.h),
 
                     // 🔥 CUSTOMER DROPDOWN (REPLACED)
-                    _label("Customer"),
+                    _label("Company Name"),
                     _dropdown(
-                      "Select Customer",
-                      customerName,
-                      ["Add New", ...customerList.map((e) => e.customerName)],
+                      "Select Company",
+                      companyCtrl.text.isEmpty ? null : companyCtrl.text,
+                      customerList
+                          .map(
+                            (e) => e.companyName.replaceAll('\n', ' ').trim(),
+                          )
+                          .toList(),
                       (v) async {
-                        if (v == "Add New") {
-                          final result = await showModalBottomSheet<String>(
-                            context: context,
-                            isScrollControlled: true,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16.r),
-                              ),
-                            ),
-                            builder: (_) => const AddCustomerPopup(),
-                          );
+                        // if (v == "Add New") {
+                        //   final result = await showModalBottomSheet<String>(
+                        //     context: context,
+                        //     isScrollControlled: true,
+                        //     shape: RoundedRectangleBorder(
+                        //       borderRadius: BorderRadius.vertical(
+                        //         top: Radius.circular(16.r),
+                        //       ),
+                        //     ),
+                        //     builder: (_) => const AddCustomerPopup(),
+                        //   );
 
-                          if (result != null) {
-                            setState(() {
-                              customerName = result;
-                            });
-                          }
-                          return;
-                        }
+                        //   if (result != null && result.isNotEmpty) {
+                        //     setState(() {
+                        //       companyCtrl.text = result;
+                        //     });
+                        //   }
+                        //   return;
+                        // }
 
                         final customer = customerList.firstWhere(
-                          (e) => e.customerName.trim() == v?.trim(),
+                          (e) =>
+                              e.companyName.replaceAll('\n', ' ').trim() ==
+                              v?.replaceAll('\n', ' ').trim(),
                         );
 
                         setState(() {
                           selectedCustomer = customer;
-                          customerName = v;
 
-                          companyCtrl.text = customer.companyName;
+                          companyCtrl.text = customer.companyName
+                              .replaceAll('\n', ' ')
+                              .trim();
+
+                          customerName = customer.customerName
+                              .replaceAll('\n', ' ')
+                              .trim();
+
                           region = customer.regionSrNo;
                         });
                       },
                     ),
+                    SizedBox(height: 18.h),
 
                     SizedBox(height: 18.h),
 
-                    _label("Company Name"),
-                    _textField(companyCtrl, "Company Name"),
+                    _label("Customer Name"),
+                    _textField(
+                      TextEditingController(text: customerName ?? ""),
+                      "Customer Name",
+                    ),
 
                     SizedBox(height: 18.h),
 

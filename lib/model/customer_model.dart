@@ -26,8 +26,17 @@ class CustomerModel {
       subregionSrNo: json['subregion_srno'],
       customerTypeSrNo: json['customer_type_srno'],
       groupSrNo: json['group_srno'],
-      companyName: json['company_name'],
-      customerName: json['customer_name'],
+      companyName: json['company_name']
+          .toString()
+          .replaceAll('\n', ' ')
+          .replaceAll('\r', '')
+          .trim(),
+
+      customerName: json['customer_name']
+          .toString()
+          .replaceAll('\n', ' ')
+          .replaceAll('\r', '')
+          .trim(),
       mobileNo: json['mobile_no'],
     );
   }

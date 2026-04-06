@@ -200,24 +200,28 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
                     _dateField(),
 
                     SizedBox(height: 18.h),
-                    _label("Customer Name"),
+                    _label("Company Name"),
                     _dropdown(
-                      "Select Customer",
-                      customerName,
+                      "Select Company",
+                      companyCtrl.text.isEmpty ? null : companyCtrl.text,
                       (v) {
-                        if (v == "Add New") {
-                          _openAddCustomerPopup();
-                          return;
-                        }
+                        // if (v == "Add New") {
+                        //   _openAddCustomerPopup();
+                        //   return;
+                        // }
 
                         final customer = customerList.firstWhere(
-                          (e) => e.customerName.trim() == v?.trim(),
+                          (e) =>
+                              e.companyName.replaceAll('\n', ' ').trim() ==
+                              v?.replaceAll('\n', ' ').trim(),
                         );
+
                         setState(() {
                           selectedCustomer = customer;
-                          customerName = v;
 
                           companyCtrl.text = customer.companyName;
+                          customerName = customer.customerName;
+
                           nameCtrl.text = customer.customerName;
                           mobileCtrl.text = customer.mobileNo;
 
@@ -241,10 +245,11 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
                               .trim();
                         });
                       },
-                      items: [
-                        "Add New",
-                        ...customerList.map((e) => e.customerName),
-                      ],
+                      items: customerList
+                          .map(
+                            (e) => e.companyName.replaceAll('\n', ' ').trim(),
+                          )
+                          .toList(),
                     ),
 
                     SizedBox(height: 18.h),
@@ -266,13 +271,12 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
                     ),
 
                     SizedBox(height: 18.h),
-                    _label("Company Name"),
-                    _textField(companyCtrl, "Enter Company Name"),
+                    _label("Customer Name"),
+                    _textField(nameCtrl, "Customer Name"),
 
-                    SizedBox(height: 18.h),
-                    _label("Name"),
-                    _textField(nameCtrl, "Enter Name"),
-
+                    // SizedBox(height: 18.h),
+                    // _label("Name"),
+                    // _textField(nameCtrl, "Enter Name"),
                     SizedBox(height: 18.h),
                     _label("Mobile No"),
                     _textField(mobileCtrl, "Enter Mobile No."),
