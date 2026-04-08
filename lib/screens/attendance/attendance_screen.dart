@@ -152,12 +152,12 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     final XFile? photo = await picker.pickImage(
       source: ImageSource.camera,
       preferredCameraDevice: CameraDevice.front,
-      imageQuality: 60, // 🔥 compression (same as timus)
+      imageQuality: 60, // compression (same as timus)
     );
 
     if (photo == null) return;
 
-    /// 🔥 Preview + Confirm Dialog
+    ///  Preview + Confirm Dialog
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
