@@ -11,4 +11,19 @@ class ApiConfig {
   static String get getCustomerTypeUrl => "${baseUrl}getCustomer_type.php";
   static String get getGroupUrl => "${baseUrl}getGroup.php";
   static String get addTourPlanUrl => "${baseUrl}addTourPlan.php";
+  static String get addTourPlanYearlyUrl => "${baseUrl}addTourPlanYearly.php";
+  static String get getAttendanceReportUrl =>
+      "${baseUrl}get_attendance_report.php";
+
+  static String get addAttendanceRegularizeUrl =>
+      "${baseUrl}addattendanceregularize.php";
+
+  // ── Attendance (Punch In / Out) ──
+  static String get markAttendanceUrl => "${baseUrl}markAttendance.php";
+  static String get getAttendanceStatusUrl =>
+      "${baseUrl}get_attendance_status.php";
+
+  // ── Live Location ──
+  static String get addEmployeeLocationUrl =>
+      "${baseUrl}addEmployeeLocation.php";
 }

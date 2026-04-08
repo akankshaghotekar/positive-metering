@@ -174,18 +174,88 @@ class ApiService {
     required String tourType,
     required String visitCall,
   }) async {
-    final res = await _postRequest(
-      "https://digitalspaceinc.com/positive_metering/ws/addTourPlanYearly.php",
-      {
-        'usersrno': userSrNo,
-        'customer_srno': customerSrNo,
-        'from_date': fromDate,
-        'to_date': toDate,
-        'tour_type': tourType,
-        'visit_call': visitCall,
-      },
-    );
+    final res = await _postRequest(ApiConfig.addTourPlanYearlyUrl, {
+      'usersrno': userSrNo,
+      'customer_srno': customerSrNo,
+      'from_date': fromDate,
+      'to_date': toDate,
+      'tour_type': tourType,
+      'visit_call': visitCall,
+    });
 
     return res['status'] == 0;
+  }
+
+  /// ATTENDANCE REPORT
+  static Future<List<Map<String, dynamic>>> getAttendanceReport({
+    required String usersrno,
+    required String fromDate,
+    required String toDate,
+  }) async {
+    final res = await _postRequest(ApiConfig.getAttendanceReportUrl, {
+      'usersrno': usersrno,
+      'from_date': fromDate,
+      'to_date': toDate,
+    });
+
+    if (res['status'] == 0 && res['data'] != null) {
+      return List<Map<String, dynamic>>.from(res['data']);
+    }
+
+    return [];
+  }
+
+  /// ADD ATTENDANCE REGULARIZE
+  static Future<Map<String, dynamic>> addAttendanceRegularize({
+    required String usersrno,
+    required String srno,
+  }) async {
+    return await _postRequest(ApiConfig.addAttendanceRegularizeUrl, {
+      'usersrno': usersrno,
+      'srno': srno,
+    });
+  }
+
+  // ── NEW: MARK ATTENDANCE (Punch In / Out) ──────────────────────────────────
+  /// [inOut] must be "IN" or "OUT"
+  /// [billDate] format: "dd-MMM-yyyy" e.g. "07-Apr-2026"
+  static Future<Map<String, dynamic>> markAttendance({
+    required String usersrno,
+    required String billDate,
+    required String inOut,
+    required String lat,
+    required String lng,
+  }) async {
+    return await _postRequest(ApiConfig.markAttendanceUrl, {
+      'usersrno': usersrno,
+      'bill_date': billDate,
+      'in_out': inOut,
+      'lat': lat,
+      'lng': lng,
+    });
+  }
+
+  // ── NEW: GET ATTENDANCE STATUS ─────────────────────────────────────────────
+  /// Returns punch_status ("Punch In" / "Punch Out" / "Attendance Marked"),
+  /// punch_in_time, punch_out_time
+  static Future<Map<String, dynamic>> getAttendanceStatus({
+    required String usersrno,
+  }) async {
+    return await _postRequest(ApiConfig.getAttendanceStatusUrl, {
+      'usersrno': usersrno,
+    });
+  }
+
+  // ── NEW: SEND LIVE LOCATION (called every 1 min from background service) ───
+  static Future<void> sendLiveLocation({
+    required String usersrno,
+    required String lat,
+    required String lng,
+  }) async {
+    await _postRequest(ApiConfig.addEmployeeLocationUrl, {
+      'usersrno': usersrno,
+      'lat': lat,
+      'lng': lng,
+    });
   }
 }

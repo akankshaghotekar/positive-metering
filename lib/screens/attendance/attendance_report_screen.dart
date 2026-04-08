@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:positive_metering/api/api_service.dart';
+import 'package:positive_metering/shared_pref/app_pref.dart';
 import 'package:positive_metering/utils/app_colors.dart';
 import 'package:positive_metering/utils/widgets/common_app_bar.dart';
+
+import 'attendance_regularize_form.dart';
 
 class AttendanceReportScreen extends StatefulWidget {
   const AttendanceReportScreen({super.key});
@@ -17,10 +21,73 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
 
   final DateFormat _formatter = DateFormat('dd-MM-yyyy');
 
+  List<Map<String, dynamic>> reportList = [];
+  bool isLoading = false;
+  String? usersrno;
+
+  String _extractDay(String dateStr) => dateStr.split("-")[0];
+
+  String _extractMonth(String dateStr) {
+    const monthNames = {
+      "01": "JAN",
+      "02": "FEB",
+      "03": "MAR",
+      "04": "APR",
+      "05": "MAY",
+      "06": "JUN",
+      "07": "JUL",
+      "08": "AUG",
+      "09": "SEP",
+      "10": "OCT",
+      "11": "NOV",
+      "12": "DEC",
+    };
+    return monthNames[dateStr.split("-")[1]] ?? "--";
+  }
+
+  String _extractTime(String str) {
+    if (str.isEmpty) return "--:--";
+    return str.split(" ").last;
+  }
+
+  Color _getColor(String status) {
+    if (status.toLowerCase().contains("present")) return Colors.green;
+    if (status.toLowerCase().contains("half")) return Colors.orange;
+    return Colors.red;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    usersrno = await AppPref.getUserSrNo();
+    _fetchReport();
+  }
+
+  Future<void> _fetchReport() async {
+    if (usersrno == null) return;
+
+    setState(() => isLoading = true);
+
+    final data = await ApiService.getAttendanceReport(
+      usersrno: usersrno!,
+      fromDate: _formatter.format(fromDate),
+      toDate: _formatter.format(toDate),
+    );
+
+    setState(() {
+      reportList = data;
+      isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColor.white,
+      backgroundColor: AppColor.appBgColor,
       appBar: const CommonAppBar(
         showBack: true,
         showDrawer: false,
@@ -29,7 +96,6 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       body: Padding(
         padding: EdgeInsets.all(16.w),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
               child: Text(
@@ -40,14 +106,14 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
 
             SizedBox(height: 20.h),
 
-            /// FILTER ROW
+            /// FILTER
             Row(
               children: [
                 _dateBox("From Date", fromDate, _pickFromDate),
                 SizedBox(width: 12.w),
                 _dateBox("To Date", toDate, _pickToDate),
                 SizedBox(width: 12.w),
-                _viewButton(),
+                GestureDetector(onTap: _fetchReport, child: _viewButton()),
               ],
             ),
 
@@ -55,14 +121,28 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
 
             /// LIST
             Expanded(
-              child: ListView(
-                children: const [
-                  _AttendanceCard(day: "06", week: "TUE", color: Colors.green),
-                  _AttendanceCard(day: "07", week: "TUE", color: Colors.orange),
-                  _AttendanceCard(day: "08", week: "TUE", color: Colors.red),
-                  _AttendanceCard(day: "09", week: "TUE", color: Colors.green),
-                ],
-              ),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : reportList.isEmpty
+                  ? const Center(child: Text("No data found"))
+                  : ListView.builder(
+                      itemCount: reportList.length,
+                      itemBuilder: (context, index) {
+                        final item = reportList[index];
+
+                        return _AttendanceCard(
+                          day: _extractDay(item["date"]),
+                          month: _extractMonth(item["date"]),
+                          color: Colors.red, // no status in API
+                          punchIn: _extractTime(item["punch_in_time"] ?? ""),
+                          punchOut: _extractTime(item["punch_out_time"] ?? ""),
+                          srno: item["srno"],
+                          attendanceRegularize:
+                              item["attendance_regularize"] ?? "",
+                          onRefresh: _fetchReport, // 👈 IMPORTANT
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -92,10 +172,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    _formatter.format(date),
-                    style: TextStyle(fontSize: 13.sp),
-                  ),
+                  Text(_formatter.format(date)),
                   Icon(Icons.calendar_month, size: 18.sp),
                 ],
               ),
@@ -117,14 +194,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
           borderRadius: BorderRadius.circular(8.r),
         ),
         alignment: Alignment.center,
-        child: Text(
-          "View",
-          style: TextStyle(
-            color: AppColor.white,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        child: const Text("View", style: TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -134,16 +204,14 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     if (picked != null) {
       setState(() {
         fromDate = picked;
-        toDate = picked;
+        if (toDate.isBefore(picked)) toDate = picked;
       });
     }
   }
 
   Future<void> _pickToDate() async {
     final picked = await _showPicker(toDate, fromDate);
-    if (picked != null) {
-      setState(() => toDate = picked);
-    }
+    if (picked != null) setState(() => toDate = picked);
   }
 
   Future<DateTime?> _showPicker(DateTime initial, DateTime first) {
@@ -152,33 +220,36 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       initialDate: initial,
       firstDate: first,
       lastDate: DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: AppColor.primaryRed),
-          ),
-          child: child!,
-        );
-      },
     );
   }
 }
 
-/// ATTENDANCE CARD
-
 class _AttendanceCard extends StatelessWidget {
   final String day;
-  final String week;
+  final String month;
   final Color color;
+  final String punchIn;
+  final String punchOut;
+  final String srno;
+  final String attendanceRegularize;
+  final Function()? onRefresh;
 
   const _AttendanceCard({
     required this.day,
-    required this.week,
+    required this.month,
     required this.color,
+    required this.punchIn,
+    required this.punchOut,
+    required this.srno,
+    required this.attendanceRegularize,
+    this.onRefresh,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool isApproved = attendanceRegularize == "Approved";
+    final bool isRequested = attendanceRegularize == "Request";
+
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(12.w),
@@ -186,11 +257,7 @@ class _AttendanceCard extends StatelessWidget {
         color: AppColor.white,
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
         ],
       ),
       child: Row(
@@ -210,13 +277,12 @@ class _AttendanceCard extends StatelessWidget {
                   day,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  week,
-                  style: TextStyle(color: Colors.white, fontSize: 11.sp),
+                  month,
+                  style: const TextStyle(color: Colors.white, fontSize: 11),
                 ),
               ],
             ),
@@ -224,15 +290,15 @@ class _AttendanceCard extends StatelessWidget {
 
           SizedBox(width: 14.w),
 
-          /// TIMES
+          /// PUNCH IN
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "09:08 AM",
+                  punchIn,
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 13.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -244,14 +310,15 @@ class _AttendanceCard extends StatelessWidget {
             ),
           ),
 
+          /// PUNCH OUT
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "06:05 PM",
+                  punchOut,
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 13.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -263,19 +330,43 @@ class _AttendanceCard extends StatelessWidget {
             ),
           ),
 
-          /// HOURS
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                "73.0036.00",
-                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
-              ),
-              Text(
-                "73.0036.00",
-                style: TextStyle(fontSize: 11.sp, color: AppColor.grey),
-              ),
-            ],
+          /// REGULARIZE
+          GestureDetector(
+            onTap: isApproved
+                ? null
+                : () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AttendanceRegularizeForm(srno: srno),
+                      ),
+                    );
+
+                    if (result == true && onRefresh != null) {
+                      onRefresh!();
+                    }
+                  },
+            child: Column(
+              children: [
+                Icon(
+                  Icons.edit_calendar,
+                  color: isApproved
+                      ? Colors.green
+                      : isRequested
+                      ? Colors.orange
+                      : AppColor.primaryRed,
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  isApproved
+                      ? "Approved"
+                      : isRequested
+                      ? "Request Sent"
+                      : "Not Requested",
+                  style: TextStyle(fontSize: 10.sp),
+                ),
+              ],
+            ),
           ),
         ],
       ),
