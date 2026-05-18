@@ -1,10 +1,18 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:positive_metering/model/common_model.dart';
 import 'package:positive_metering/model/customer_model.dart';
+import 'package:positive_metering/model/enquiry_detail_model.dart';
+import 'package:positive_metering/model/enquiry_followup_model.dart';
+import 'package:positive_metering/model/enquiry_model.dart';
 import 'package:positive_metering/model/login_model.dart';
+import 'package:positive_metering/model/product_model.dart';
+import 'package:positive_metering/model/tour_plan_details_model.dart';
 import 'package:positive_metering/model/tour_plan_model.dart';
+import 'package:positive_metering/model/tour_plan_yearly_details_model.dart';
 import 'package:positive_metering/model/tour_plan_yearly_model.dart';
+import 'package:positive_metering/model/visit_followup_model.dart';
 import 'api_config.dart';
 
 class ApiService {
@@ -216,9 +224,7 @@ class ApiService {
     });
   }
 
-  // ── NEW: MARK ATTENDANCE (Punch In / Out) ──────────────────────────────────
-  /// [inOut] must be "IN" or "OUT"
-  /// [billDate] format: "dd-MMM-yyyy" e.g. "07-Apr-2026"
+  // MARK ATTENDANCE (Punch In / Out)
   static Future<Map<String, dynamic>> markAttendance({
     required String usersrno,
     required String billDate,
@@ -235,9 +241,8 @@ class ApiService {
     });
   }
 
-  // ── NEW: GET ATTENDANCE STATUS ─────────────────────────────────────────────
-  /// Returns punch_status ("Punch In" / "Punch Out" / "Attendance Marked"),
-  /// punch_in_time, punch_out_time
+  // GET ATTENDANCE STATUS
+
   static Future<Map<String, dynamic>> getAttendanceStatus({
     required String usersrno,
   }) async {
@@ -246,7 +251,7 @@ class ApiService {
     });
   }
 
-  // ── NEW: SEND LIVE LOCATION (called every 1 min from background service) ───
+  //  SEND LIVE LOCATION
   static Future<void> sendLiveLocation({
     required String usersrno,
     required String lat,
@@ -257,5 +262,285 @@ class ApiService {
       'lat': lat,
       'lng': lng,
     });
+  }
+
+  static Future<List<ProductModel>> getProducts() async {
+    final res = await _postRequest(ApiConfig.getProductsUrl, {});
+
+    if (res['status'] == 0 && res['data'] != null) {
+      return (res['data'] as List)
+          .map((e) => ProductModel.fromJson(e))
+          .toList();
+    }
+
+    return [];
+  }
+
+  static Future<TourPlanDetailsModel?> getTourPlanDetails({
+    required String tourPlanSrNo,
+  }) async {
+    final res = await _postRequest(ApiConfig.getTourPlanDetailsUrl, {
+      'tour_plan_srno': tourPlanSrNo,
+    });
+
+    if (res['status'] == 0 && res['data'] != null && res['data'].isNotEmpty) {
+      return TourPlanDetailsModel.fromJson(res['data'][0]);
+    }
+
+    return null;
+  }
+
+  static Future<TourPlanYearlyDetailsModel?> getTourPlanDetailsYearly({
+    required String tourPlanSrNo,
+  }) async {
+    final res = await _postRequest(ApiConfig.getTourPlanDetailsYearlyUrl, {
+      'tour_plan_srno': tourPlanSrNo,
+    });
+
+    if (res['status'] == 0 && res['data'] != null && res['data'].isNotEmpty) {
+      return TourPlanYearlyDetailsModel.fromJson(res['data'][0]);
+    }
+
+    return null;
+  }
+
+  static Future<bool> addVisit({
+    required String userSrNo,
+    required String tourPlanSrNo,
+    required String comments,
+    String? followupDate,
+    required String enquiryGenerated,
+    String? productSrNo,
+    File? imageFile,
+  }) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse(ApiConfig.addVisitUrl),
+      );
+
+      request.fields['usersrno'] = userSrNo;
+      request.fields['tour_plan_srno'] = tourPlanSrNo;
+      request.fields['comments'] = comments;
+      request.fields['enquiry_generated'] = enquiryGenerated;
+
+      if (followupDate != null) {
+        request.fields['visit_followup_date'] = followupDate;
+      }
+
+      if (enquiryGenerated == "Yes" && productSrNo != null) {
+        request.fields['product_srno'] = productSrNo;
+      }
+
+      if (imageFile != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath('img1', imageFile.path),
+        );
+      }
+
+      final response = await request.send();
+
+      final res = await response.stream.bytesToString();
+      final data = jsonDecode(res);
+
+      return data['status'] == 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<bool> addEnquiry({
+    required String userSrNo,
+    required String customerSrNo,
+    required String comments,
+    required String productSrNo,
+    required String billDate,
+    required String followupDate,
+  }) async {
+    final res = await _postRequest(ApiConfig.addEnquiryUrl, {
+      'usersrno': userSrNo,
+      'customer_srno': customerSrNo,
+      'comments': comments,
+      'product_srno': productSrNo,
+      'bill_date': billDate,
+      'visit_followup_date': followupDate,
+    });
+
+    return res['status'] == 0;
+  }
+
+  static Future<List<EnquiryModel>> getEnquiry({
+    required String usersrno,
+    required String fromDate,
+    required String toDate,
+  }) async {
+    final res = await _postRequest(
+      "https://digitalspaceinc.com/positive_metering/ws/getEnquiry.php",
+      {'usersrno': usersrno, 'from_date': fromDate, 'to_date': toDate},
+    );
+
+    if (res['status'] == 0 && res['data'] != null) {
+      return (res['data'] as List)
+          .map((e) => EnquiryModel.fromJson(e))
+          .toList();
+    }
+
+    return [];
+  }
+
+  static Future<EnquiryDetailModel?> getEnquiryDetail({
+    required String enquirySrNo,
+  }) async {
+    final res = await _postRequest(
+      "https://digitalspaceinc.com/positive_metering/ws/getEnquiryDetail.php",
+      {'enquirysrno': enquirySrNo},
+    );
+
+    if (res['status'] == 0 && res['data'] != null && res['data'].isNotEmpty) {
+      return EnquiryDetailModel.fromJson(res['data'][0]);
+    }
+
+    return null;
+  }
+
+  static Future<List<EnquiryFollowUpModel>> getEnquiryFollowUp({
+    required String usersrno,
+    required String fromDate,
+    required String toDate,
+  }) async {
+    final res = await _postRequest(
+      "https://digitalspaceinc.com/positive_metering/ws/getEnquiryFollowup.php",
+      {'usersrno': usersrno, 'from_date': fromDate, 'to_date': toDate},
+    );
+
+    if (res['status'] == 0 && res['data'] != null) {
+      return (res['data'] as List)
+          .map((e) => EnquiryFollowUpModel.fromJson(e))
+          .toList();
+    }
+    return [];
+  }
+
+  static Future<List<VisitFollowUpModel>> getVisitFollowUp({
+    required String usersrno,
+    required String fromDate,
+    required String toDate,
+  }) async {
+    final res = await _postRequest(
+      "https://digitalspaceinc.com/positive_metering/ws/getVisitFollowup.php",
+      {'usersrno': usersrno, 'from_date': fromDate, 'to_date': toDate},
+    );
+
+    if (res['status'] == 0 && res['data'] != null) {
+      return (res['data'] as List)
+          .map((e) => VisitFollowUpModel.fromJson(e))
+          .toList();
+    }
+    return [];
+  }
+
+  static Future<List<Map<String, dynamic>>> getStatus() async {
+    final response = await http.post(
+      Uri.parse(
+        "https://digitalspaceinc.com/positive_metering/ws/getStatus.php",
+      ),
+    );
+
+    final json = jsonDecode(response.body);
+
+    if (json['status'] == 0) {
+      return List<Map<String, dynamic>>.from(json['data']);
+    } else {
+      return [];
+    }
+  }
+
+  static Future<bool> addFollowupEnquiry({
+    required String enquirySrNo,
+    required String userSrNo,
+    required String comments,
+    required String customerSrNo,
+    required String visitDate,
+    required String statusSrNo,
+    required String nextFollowup,
+  }) async {
+    final response = await http.post(
+      Uri.parse(
+        "https://digitalspaceinc.com/positive_metering/ws/addFollowupEnquiry.php",
+      ),
+      body: {
+        "enquirysrno": enquirySrNo,
+        "usersrno": userSrNo,
+        "comments": comments,
+        "customer_srno": customerSrNo,
+        "visit_followup_date": visitDate,
+        "status_srno": statusSrNo,
+        "next_followup": nextFollowup,
+      },
+    );
+
+    return jsonDecode(response.body)['status'] == 0;
+  }
+
+  static Future<bool> addFollowupVisit({
+    required String tourPlanSrNo,
+    required String userSrNo,
+    required String comments,
+    required String customerSrNo,
+    required String visitDate,
+    required String statusSrNo,
+    required String nextFollowup,
+    String? enquiryGenerated,
+    String? productSrNo,
+  }) async {
+    final response = await http.post(
+      Uri.parse(
+        "https://digitalspaceinc.com/positive_metering/ws/addFollowupVisits.php",
+      ),
+      body: {
+        "tour_plan_srno": tourPlanSrNo,
+        "usersrno": userSrNo,
+        "comments": comments,
+        "customer_srno": customerSrNo,
+        "visit_followup_date": visitDate,
+        "status_srno": statusSrNo,
+        "next_followup": nextFollowup,
+
+        if (enquiryGenerated != null) "enquiry_generated": enquiryGenerated,
+
+        if (enquiryGenerated == "Yes" && productSrNo != null)
+          "product_srno": productSrNo,
+      },
+    );
+
+    return jsonDecode(response.body)['status'] == 0;
+  }
+
+  static Future<List<Map<String, dynamic>>> getEnquiryFollowupDetails({
+    required String enquirySrNo,
+  }) async {
+    final res = await http.post(
+      Uri.parse(
+        "https://digitalspaceinc.com/positive_metering/ws/getEnquiryFollowupDetails.php",
+      ),
+      body: {"enquirysrno": enquirySrNo},
+    );
+
+    final jsonData = json.decode(res.body);
+    return List<Map<String, dynamic>>.from(jsonData['data'] ?? []);
+  }
+
+  static Future<List<Map<String, dynamic>>> getVisitFollowupDetails({
+    required String tourPlanSrNo,
+  }) async {
+    final res = await http.post(
+      Uri.parse(
+        "https://digitalspaceinc.com/positive_metering/ws/getVisitFollowupDetails.php",
+      ),
+      body: {"tour_plan_srno": tourPlanSrNo},
+    );
+
+    final jsonData = json.decode(res.body);
+    return List<Map<String, dynamic>>.from(jsonData['data'] ?? []);
   }
 }

@@ -5,6 +5,7 @@ import 'package:positive_metering/api/api_service.dart';
 import 'package:positive_metering/model/tour_plan_yearly_model.dart';
 import 'package:positive_metering/screens/plan/add_tour_plan_yearly_screen.dart';
 import 'package:positive_metering/screens/plan/mark_visit/mark_visit_screen.dart';
+import 'package:positive_metering/screens/plan/mark_visit/yearly_visit_detail.dart';
 import 'package:positive_metering/shared_pref/app_pref.dart';
 import 'package:positive_metering/utils/animation_helper/animated_page_route.dart';
 import 'package:positive_metering/utils/app_colors.dart';
@@ -128,20 +129,33 @@ class _TourPlanYearlyScreenState extends State<TourPlanYearlyScreen> {
                       itemBuilder: (context, index) {
                         final item = planList[index];
 
-                        return _planCard({
-                          "company": item.companyName,
-                          "region": item.regionName,
-                          "status": item.status,
-                          "type": item.type,
-                          "comments": {
-                            "Kajal": item.kajal ?? "",
-                            "Ravi": item.ravi ?? "",
-                            "Malhar": item.malhar ?? "",
+                        return InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              AnimatedPageRoute(
+                                page: YearlyVisitDetail(
+                                  tourPlanSrNo: item.tourPlanSrNo,
+                                ),
+                              ),
+                            );
                           },
-                        });
+                          child: _planCard({
+                            "company": item.companyName,
+                            "region": item.regionName,
+                            "status": item.status,
+                            "type": item.type,
+                            "comments": {
+                              "Kajal": item.kajal ?? "",
+                              "Ravi": item.ravi ?? "",
+                              "Malhar": item.malhar ?? "",
+                            },
+                          }),
+                        );
                       },
                     ),
             ),
+            SizedBox(height: 40.h),
           ],
         ),
       ),
@@ -298,175 +312,165 @@ class _TourPlanYearlyScreenState extends State<TourPlanYearlyScreen> {
       final isTour = data["type"] == "Tour";
       final chipColor = isTour ? AppColor.primaryRed : AppColor.primaryBlue;
 
-      return InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            AnimatedPageRoute(page: const MarkVisitScreen()),
-          );
-        },
-        child: Container(
-          padding: EdgeInsets.all(14.w),
-          decoration: BoxDecoration(
-            color: AppColor.white,
-            borderRadius: BorderRadius.circular(12.r),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      data["company"]!,
-                      style: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
+      return Container(
+        padding: EdgeInsets.all(14.w),
+        decoration: BoxDecoration(
+          color: AppColor.white,
+          borderRadius: BorderRadius.circular(12.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    data["company"]!,
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-
-                  /// TYPE CHIP (TOP RIGHT)
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 4.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: chipColor,
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    child: Text(
-                      data["type"]!,
-                      style: TextStyle(
-                        color: AppColor.white,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              SizedBox(height: 6.h),
-              Row(
-                children: [
-                  Icon(
-                    Icons.location_on_outlined,
-                    size: 16.sp,
-                    color: AppColor.grey,
-                  ),
-                  SizedBox(width: 4.w),
-                  Text("Region: ${data["region"]}"),
-                ],
-              ),
-              SizedBox(height: 4.h),
-              SizedBox(height: 8.h),
-
-              Container(
-                padding: EdgeInsets.all(8.w),
-                decoration: BoxDecoration(
-                  color: AppColor.lightGrey.withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(8.r),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: allCommenters.map((name) {
-                    final text = comments[name]?.trim();
 
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: 4.h),
-                      child: RichText(
-                        text: TextSpan(
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: AppColor.textDark,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: "$name: ",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            TextSpan(
-                              text: (text != null && text.isNotEmpty)
-                                  ? text
-                                  : "—",
-                              style: TextStyle(
-                                color: AppColor.grey,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-
-              SizedBox(height: 10.h),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  /// STATUS
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 4.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(color: statusColor),
-                    ),
-                    child: Text(
-                      data["status"]!,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.sp,
-                      ),
+                /// TYPE CHIP (TOP RIGHT)
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 4.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: chipColor,
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Text(
+                    data["type"]!,
+                    style: TextStyle(
+                      color: AppColor.white,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                ),
+              ],
+            ),
 
-                  /// CALL ICON → ONLY FOR LEAN
-                  if (!isTour)
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(6.w),
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(20.r),
-                          ),
-                          child: Icon(
-                            Icons.call,
-                            color: AppColor.white,
-                            size: 18.sp,
-                          ),
+            SizedBox(height: 6.h),
+            Row(
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 16.sp,
+                  color: AppColor.grey,
+                ),
+                SizedBox(width: 4.w),
+                Text("Region: ${data["region"]}"),
+              ],
+            ),
+            SizedBox(height: 4.h),
+            SizedBox(height: 8.h),
+
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(
+                color: AppColor.lightGrey.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: allCommenters.map((name) {
+                  final text = comments[name]?.trim();
+
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 4.h),
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: AppColor.textDark,
                         ),
-                        Icon(
-                          Icons.keyboard_double_arrow_right_sharp,
+                        children: [
+                          TextSpan(
+                            text: "$name: ",
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          TextSpan(
+                            text: (text != null && text.isNotEmpty)
+                                ? text
+                                : "—",
+                            style: TextStyle(
+                              color: AppColor.grey,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            SizedBox(height: 10.h),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                /// STATUS
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 4.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(color: statusColor),
+                  ),
+                  child: Text(
+                    data["status"]!,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ),
+
+                /// CALL ICON → ONLY FOR LEAN
+                if (!isTour)
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(6.w),
+                        decoration: BoxDecoration(
                           color: Colors.green,
-                          size: 20.sp,
+                          borderRadius: BorderRadius.circular(20.r),
                         ),
-                      ],
-                    ),
-                ],
-              ),
-            ],
-          ),
+                        child: Icon(
+                          Icons.call,
+                          color: AppColor.white,
+                          size: 18.sp,
+                        ),
+                      ),
+                      Icon(
+                        Icons.keyboard_double_arrow_right_sharp,
+                        color: Colors.green,
+                        size: 20.sp,
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ],
         ),
       );
     }

@@ -55,6 +55,8 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
     typeList = await ApiService.getCustomerType();
     groupList = await ApiService.getGroup();
 
+    if (!mounted) return;
+
     setState(() {});
   }
 
@@ -120,7 +122,8 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
       visitCall: visitCall!,
     );
 
-    setState(() => isSaving = false); // 🔥 STOP LOADING
+    if (!mounted) return;
+    setState(() => isSaving = false);
 
     if (success) {
       Navigator.pushAndRemoveUntil(
@@ -454,7 +457,7 @@ class _AddTourPlanScreenState extends State<AddTourPlanScreen> {
 
   Widget _actionButtons() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 35.h),
+      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 50.h),
       child: Row(
         children: [
           Expanded(

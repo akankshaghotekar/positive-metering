@@ -6,6 +6,7 @@ class TourPlanYearlyModel {
   final String? kajal;
   final String? ravi;
   final String? malhar;
+  final String tourPlanSrNo;
 
   TourPlanYearlyModel({
     required this.companyName,
@@ -15,10 +16,12 @@ class TourPlanYearlyModel {
     this.kajal,
     this.ravi,
     this.malhar,
+    required this.tourPlanSrNo,
   });
 
   factory TourPlanYearlyModel.fromJson(Map<String, dynamic> json) {
     return TourPlanYearlyModel(
+      tourPlanSrNo: json['tour_plan_srno'] ?? "",
       companyName: json['company_name'],
       regionName: json['region_name'],
       status: json['status'],

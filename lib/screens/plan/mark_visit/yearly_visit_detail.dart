@@ -10,16 +10,17 @@ import 'package:positive_metering/utils/animation_helper/animated_page_route.dar
 import 'package:positive_metering/utils/app_colors.dart';
 import 'package:positive_metering/utils/widgets/common_app_bar.dart';
 
-class MarkVisitScreen extends StatefulWidget {
+class YearlyVisitDetail extends StatefulWidget {
   final String tourPlanSrNo;
-  const MarkVisitScreen({super.key, required this.tourPlanSrNo});
+  const YearlyVisitDetail({super.key, required this.tourPlanSrNo});
 
   @override
-  State<MarkVisitScreen> createState() => _MarkVisitScreenState();
+  State<YearlyVisitDetail> createState() => _YearlyVisitDetailState();
 }
 
-class _MarkVisitScreenState extends State<MarkVisitScreen> {
-  DateTime? selectedDate;
+class _YearlyVisitDetailState extends State<YearlyVisitDetail> {
+  DateTime? fromDate;
+  DateTime? toDate;
   final DateFormat _formatter = DateFormat('dd-MM-yyyy');
 
   String? customerName;
@@ -63,13 +64,13 @@ class _MarkVisitScreenState extends State<MarkVisitScreen> {
     typeList = await ApiService.getCustomerType();
     groupList = await ApiService.getGroup();
 
-    final details = await ApiService.getTourPlanDetails(
+    final details = await ApiService.getTourPlanDetailsYearly(
       tourPlanSrNo: widget.tourPlanSrNo,
     );
 
     if (details != null) {
-      /// SET DATE
-      selectedDate = DateFormat('dd-MM-yyyy').parse(details.billDate);
+      fromDate = DateFormat('dd-MM-yyyy').parse(details.fromDate);
+      toDate = DateFormat('dd-MM-yyyy').parse(details.toDate);
 
       tourType = details.tourType;
       visitCall = details.visitCall;
@@ -126,9 +127,6 @@ class _MarkVisitScreenState extends State<MarkVisitScreen> {
         showAdd: false,
       ),
 
-      /// FIXED BUTTON
-      bottomNavigationBar: _markVisitButton(),
-
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         child: Column(
@@ -149,8 +147,13 @@ class _MarkVisitScreenState extends State<MarkVisitScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _label("Date"),
-                    _dateField(),
+                    _label("From Date"),
+                    _dateField(fromDate),
+
+                    SizedBox(height: 18.h),
+
+                    _label("To Date"),
+                    _dateField(toDate),
 
                     SizedBox(height: 18.h),
                     _label("Company Name"),
@@ -182,10 +185,6 @@ class _MarkVisitScreenState extends State<MarkVisitScreen> {
                       null,
                       items: customerList.map((e) => e.customerName).toList(),
                     ),
-
-                    SizedBox(height: 18.h),
-                    _label("Name"),
-                    _textField(nameCtrl, "Enter Name"),
 
                     SizedBox(height: 18.h),
                     _label("Mobile No"),
@@ -221,6 +220,7 @@ class _MarkVisitScreenState extends State<MarkVisitScreen> {
                 ),
               ),
             ),
+            SizedBox(height: 40.h),
           ],
         ),
       ),
@@ -236,29 +236,24 @@ class _MarkVisitScreenState extends State<MarkVisitScreen> {
     );
   }
 
-  Widget _dateField() {
-    return InkWell(
-      onTap: null,
-      child: Container(
-        height: 46.h,
-        margin: EdgeInsets.only(top: 6.h),
-        padding: EdgeInsets.symmetric(horizontal: 14.w),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(color: AppColor.grey),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              selectedDate == null
-                  ? "Select Date"
-                  : _formatter.format(selectedDate!),
-              style: TextStyle(fontSize: 14.sp),
-            ),
-            const Icon(Icons.calendar_month),
-          ],
-        ),
+  Widget _dateField(DateTime? date) {
+    return Container(
+      height: 46.h,
+      margin: EdgeInsets.only(top: 6.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(color: AppColor.grey),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            date == null ? "Select Date" : _formatter.format(date),
+            style: TextStyle(fontSize: 14.sp),
+          ),
+          const Icon(Icons.calendar_month),
+        ],
       ),
     );
   }
@@ -314,60 +309,4 @@ class _MarkVisitScreenState extends State<MarkVisitScreen> {
   }
 
   // DATE PICKER
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: AppColor.primaryRed),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() => selectedDate = picked);
-    }
-  }
-
-  // MARK VISIT BUTTON
-
-  Widget _markVisitButton() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 15.h, 16.w, 50.h),
-      child: SizedBox(
-        width: double.infinity,
-        height: 46.h,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColor.primaryRed,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              AnimatedPageRoute(
-                page: SubmitVisitScreen(tourPlanSrNo: widget.tourPlanSrNo),
-              ),
-            );
-          },
-          child: const Text(
-            "Mark Visit",
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: AppColor.white,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

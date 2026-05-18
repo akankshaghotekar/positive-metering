@@ -144,6 +144,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
                       },
                     ),
             ),
+            SizedBox(height: 40.h),
           ],
         ),
       ),

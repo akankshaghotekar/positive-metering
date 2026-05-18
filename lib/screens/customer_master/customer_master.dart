@@ -1,42 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:positive_metering/api/api_service.dart';
+import 'package:positive_metering/model/customer_model.dart';
+import 'package:positive_metering/shared_pref/app_pref.dart';
 import 'package:positive_metering/utils/app_colors.dart';
 import 'package:positive_metering/utils/widgets/common_app_bar.dart';
 import 'package:positive_metering/utils/widgets/common_drawer.dart';
 
 class CustomerMasterScreen extends StatefulWidget {
   const CustomerMasterScreen({super.key});
-
-  /// Static list for now
-  static final List<Map<String, String>> customers = [
-    {
-      "company": "ABC Industries",
-      "name": "Akanksha Ghotekar",
-      "mobile": "9876543210",
-      "type": "OEM",
-      "group": "Water",
-      "isLadle": "false",
-      "dob": "09-01-2003",
-    },
-    {
-      "company": "XYZ Solutions",
-      "name": "Rahul Patil",
-      "mobile": "9123456789",
-      "type": "Consultant",
-      "group": "Oil & Gas",
-      "isLadle": "false",
-      "dob": "15-03-1985",
-    },
-    {
-      "company": "abc Solutions",
-      "name": "Sneha Kulkarni",
-      "mobile": "9988776655",
-      "type": "User",
-      "group": "Chemicals",
-      "isLadle": "false",
-      "dob": "22-07-1990",
-    },
-  ];
 
   @override
   State<CustomerMasterScreen> createState() => _CustomerMasterScreenState();
@@ -46,13 +18,15 @@ class _CustomerMasterScreenState extends State<CustomerMasterScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final TextEditingController searchCtrl = TextEditingController();
-  List<Map<String, String>> filteredCustomers = List.from(
-    CustomerMasterScreen.customers,
-  );
+  List<CustomerModel> customerList = [];
+  List<CustomerModel> filteredCustomers = [];
+
+  bool isLoading = true;
+  Map<String, String> regionMap = {};
 
   void _showLadleConfirmDialog(
     BuildContext context,
-    Map<String, String> data,
+    CustomerModel data,
     bool isLadle,
   ) {
     showDialog(
@@ -96,7 +70,7 @@ class _CustomerMasterScreenState extends State<CustomerMasterScreen> {
               ),
               onPressed: () {
                 setState(() {
-                  data["isLadle"] = isLadle ? "false" : "true";
+                  data.isLadle = !isLadle;
                 });
                 Navigator.pop(context);
               },
@@ -115,19 +89,47 @@ class _CustomerMasterScreenState extends State<CustomerMasterScreen> {
     );
   }
 
+  Future<void> loadCustomers() async {
+    setState(() => isLoading = true);
+
+    final user = await AppPref.getUser();
+
+    /// CUSTOMER API
+    final customerData = await ApiService.getCustomerList(
+      userSrNo: user?['usersrno'] ?? "",
+      regionSrNo: user?['region_srno'] ?? "",
+      subregionSrNo: user?['subregion_srno'] ?? "",
+    );
+
+    /// REGION API
+    final regions = await ApiService.getRegion();
+
+    /// CREATE MAP
+    regionMap = {for (var region in regions) region.id: region.name};
+
+    setState(() {
+      customerList = customerData;
+      filteredCustomers = customerData;
+      isLoading = false;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     searchCtrl.addListener(_onSearch);
+
+    loadCustomers();
   }
 
   void _onSearch() {
     final query = searchCtrl.text.toLowerCase();
+
     setState(() {
-      filteredCustomers = CustomerMasterScreen.customers.where((customer) {
-        return customer["company"]!.toLowerCase().contains(query) ||
-            customer["name"]!.toLowerCase().contains(query) ||
-            customer["mobile"]!.toLowerCase().contains(query);
+      filteredCustomers = customerList.where((customer) {
+        return customer.companyName.toLowerCase().contains(query) ||
+            customer.customerName.toLowerCase().contains(query) ||
+            customer.mobileNo.toLowerCase().contains(query);
       }).toList();
     });
   }
@@ -203,14 +205,16 @@ class _CustomerMasterScreenState extends State<CustomerMasterScreen> {
 
             /// CUSTOMER LIST
             Expanded(
-              child: ListView.separated(
-                itemCount: filteredCustomers.length,
-                separatorBuilder: (_, __) => SizedBox(height: 12.h),
-                itemBuilder: (context, index) {
-                  final customer = filteredCustomers[index];
-                  return _customerCard(customer);
-                },
-              ),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.separated(
+                      itemCount: filteredCustomers.length,
+                      separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                      itemBuilder: (context, index) {
+                        final customer = filteredCustomers[index];
+                        return _customerCard(customer);
+                      },
+                    ),
             ),
             SizedBox(height: 40.h),
           ],
@@ -220,8 +224,9 @@ class _CustomerMasterScreenState extends State<CustomerMasterScreen> {
   }
 
   // ------------------------------------------------------------------
-  Widget _customerCard(Map<String, String> data) {
-    bool isLadle = data["isLadle"] == "true";
+  Widget _customerCard(CustomerModel data) {
+    bool isLadle = data.isLadle;
+    final regionName = regionMap[data.regionSrNo] ?? "N/A";
 
     return Stack(
       children: [
@@ -236,18 +241,23 @@ class _CustomerMasterScreenState extends State<CustomerMasterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _row("Company Name:", data["company"] ?? ""),
+              _row("Company Name:", data.companyName),
               SizedBox(height: 6.h),
-              _row("Name:", data["name"] ?? ""),
+
+              _row("Name:", data.customerName),
               SizedBox(height: 6.h),
-              _row("Mobile No:", data["mobile"] ?? ""),
+
+              _row("Mobile No:", data.mobileNo),
               SizedBox(height: 6.h),
-              _row("Date Of Birth:", data["dob"] ?? ""),
+
+              _row("Customer Type:", data.customerType),
               SizedBox(height: 6.h),
-              _row("Customer Type:", data["type"] ?? ""),
+
+              _row("Group:", data.groupName),
               SizedBox(height: 6.h),
-              _row("Group:", data["group"] ?? ""),
-              SizedBox(height: 12.h),
+
+              _row("Region:", regionName),
+              SizedBox(height: 15.h),
 
               /// VIEW BUTTON
               Row(

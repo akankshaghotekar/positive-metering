@@ -94,6 +94,7 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
 
             /// LIST
             Expanded(child: ListView(children: const [_ServiceHistoryCard()])),
+            SizedBox(height: 40.h),
           ],
         ),
       ),

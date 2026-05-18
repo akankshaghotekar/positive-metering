@@ -62,6 +62,7 @@ class _ServiceCallScreenState extends State<ServiceCallScreen> {
 
             /// SERVICE CALL CARD
             const _ServiceCallCard(),
+            SizedBox(height: 40.h),
           ],
         ),
       ),

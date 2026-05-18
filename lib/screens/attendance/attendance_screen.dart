@@ -410,7 +410,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
             // ── View report button ──────────────────────────────────────────
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 35.h),
+              padding: EdgeInsets.fromLTRB(16.w, 15, 16.w, 50.h),
               child: SizedBox(
                 width: double.infinity,
                 height: 46.h,

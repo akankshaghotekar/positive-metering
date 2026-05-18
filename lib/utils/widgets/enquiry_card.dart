@@ -3,7 +3,16 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:positive_metering/utils/app_colors.dart';
 
 class EnquiryCard extends StatelessWidget {
-  const EnquiryCard({super.key});
+  final String enquirySrNo;
+  final String date;
+  final String companyName;
+
+  const EnquiryCard({
+    super.key,
+    required this.enquirySrNo,
+    required this.date,
+    required this.companyName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +24,7 @@ class EnquiryCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          /// LEFT RED BAR
+          /// LEFT RED BAR (SAME)
           Container(
             width: 4.w,
             height: 110.h,
@@ -34,11 +43,12 @@ class EnquiryCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  /// TOP ROW (SAME UI)
                   Row(
                     children: [
                       Expanded(
                         child: Text(
-                          "EnquirySrno:",
+                          "EnquirySrno: $enquirySrNo",
                           style: TextStyle(
                             fontSize: 14.sp,
                             color: AppColor.grey,
@@ -72,40 +82,18 @@ class EnquiryCard extends StatelessWidget {
 
                   SizedBox(height: 8.h),
 
-                  Text("Date: 25-01-2026", style: TextStyle(fontSize: 14.sp)),
+                  /// DATE (dynamic)
+                  Text("Date: $date", style: TextStyle(fontSize: 14.sp)),
 
                   SizedBox(height: 6.h),
 
+                  /// COMPANY NAME (dynamic)
                   Text(
-                    "Customer Name: Admin panel",
+                    "Customer Name: $companyName",
                     style: TextStyle(fontSize: 14.sp),
                   ),
 
                   SizedBox(height: 10.h),
-
-                  /// VIEW DETAILS BUTTON (TEXT + ICON)
-                  InkWell(
-                    onTap: () {},
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          "View Details",
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: AppColor.primaryRed,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-
-                        Icon(
-                          Icons.keyboard_arrow_down_sharp,
-                          size: 22.sp,
-                          color: AppColor.primaryRed,
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),

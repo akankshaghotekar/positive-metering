@@ -111,6 +111,8 @@ class _MaterialIssuedScreenState extends State<MaterialIssuedScreen> {
 
             /// LIST
             Expanded(child: ListView(children: const [_MaterialIssuedCard()])),
+
+            SizedBox(height: 40.h),
           ],
         ),
       ),

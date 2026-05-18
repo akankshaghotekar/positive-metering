@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:positive_metering/api/api_service.dart';
+import 'package:positive_metering/model/customer_model.dart';
+import 'package:positive_metering/model/product_model.dart';
 import 'package:positive_metering/screens/enquiry/enquiry_screen.dart';
+import 'package:positive_metering/shared_pref/app_pref.dart';
 import 'package:positive_metering/utils/app_colors.dart';
 import 'package:positive_metering/utils/widgets/add_customer_popup.dart';
 import 'package:positive_metering/utils/widgets/common_app_bar.dart';
@@ -16,29 +20,24 @@ class AddEnquiryScreen extends StatefulWidget {
 class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  DateTime? selectedDate;
+  bool isLoadingProducts = false;
+
+  bool isSubmitting = false;
+
+  List<CustomerModel> customerList = [];
+  List<ProductModel> productList = [];
+
+  String? selectedCustomerSrNo;
+  final Set<String> selectedProductSrNos = {};
+
+  DateTime? billDate;
+  DateTime? followupDate;
   final DateFormat _formatter = DateFormat('dd-MM-yyyy');
 
-  String? selectedCustomer;
-  String? selectedSector;
+  String? selectedCompany;
+  // String? selectedSector;
 
-  final List<String> customers = [
-    "Add New",
-    "Customer A",
-    "Customer B",
-    "Customer C",
-  ];
-
-  final List<String> sectors = ["Pharma", "Water Treatment", "Chemical"];
-
-  final List<String> products = [
-    "Dosing Pumps",
-    "SC Pumps",
-    "ED Pumps",
-    "Agitators",
-    "Spares",
-    "Dosing System",
-  ];
+  // final List<String> sectors = ["Pharma", "Water Treatment", "Chemical"];
 
   final Set<String> selectedProducts = {};
 
@@ -55,13 +54,111 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
 
     if (result != null && result.isNotEmpty) {
       setState(() {
-        selectedCustomer = result;
+        selectedCompany = result;
 
         // if (!customers.contains(result)) {
         //   customers.add(result);
         // }
       });
     }
+  }
+
+  Future<void> _submitEnquiry() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (selectedCustomerSrNo == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColor.primaryBlue,
+          content: Text(
+            "Select Company",
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (selectedProductSrNos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColor.primaryBlue,
+          content: Text(
+            "Select Product",
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final userSrNo = await AppPref.getUserSrNo();
+
+    setState(() => isSubmitting = true);
+
+    try {
+      final success = await ApiService.addEnquiry(
+        userSrNo: userSrNo ?? "",
+        customerSrNo: selectedCustomerSrNo!,
+        comments: commentCtrl.text,
+        productSrNo: selectedProductSrNos.join(","),
+        billDate: _formatter.format(billDate ?? DateTime.now()),
+        followupDate: followupDate != null
+            ? _formatter.format(followupDate!)
+            : "",
+      );
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColor.green,
+            content: Text(
+              "Enquiry Added",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        );
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => EnquiryScreen()),
+          (route) => false,
+        );
+      } else {
+        throw Exception();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColor.primaryBlue,
+          content: Text("Failed", style: TextStyle(color: Colors.white)),
+        ),
+      );
+    } finally {
+      setState(() => isSubmitting = false);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadData();
+  }
+
+  Future<void> loadData() async {
+    final user = await AppPref.getUser();
+
+    customerList = await ApiService.getCustomerList(
+      userSrNo: user?['usersrno'],
+      regionSrNo: user?['region_srno'],
+      subregionSrNo: user?['subregion_srno'],
+    );
+
+    setState(() => isLoadingProducts = true);
+
+    productList = await ApiService.getProducts();
+
+    setState(() => isLoadingProducts = false);
   }
 
   @override
@@ -94,44 +191,53 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _label("Date"),
-                      _dateField(),
+                      _dateField(billDate, () => _pickDate(isFollowup: false)),
 
                       SizedBox(height: 22.h),
-                      _label("Customer Name"),
+                      _label("Company Name"),
                       _dropdownField(
-                        hint: "Select Customer",
-                        value: selectedCustomer,
-                        items: customers,
+                        hint: "Select Company",
+                        value: selectedCompany,
+                        items: customerList.map((e) => e.companyName).toList(),
                         onChanged: (val) {
-                          if (val == "Add New") {
-                            _openAddCustomerPopup();
-                          } else {
-                            setState(() => selectedCustomer = val);
-                          }
+                          final selected = customerList.firstWhere(
+                            (e) => e.companyName == val,
+                          );
+
+                          setState(() {
+                            selectedCompany = val;
+                            selectedCustomerSrNo = selected.customerSrNo;
+                          });
                         },
                       ),
 
-                      SizedBox(height: 22.h),
+                      // SizedBox(height: 22.h),
 
-                      _label("Sector"),
-                      _dropdownField(
-                        hint: "Select the Sector",
-                        value: selectedSector,
-                        items: sectors,
-                        onChanged: (val) {
-                          setState(() => selectedSector = val);
-                        },
-                      ),
-
+                      // _label("Sector"),
+                      // _dropdownField(
+                      //   hint: "Select the Sector",
+                      //   value: selectedSector,
+                      //   items: sectors,
+                      //   onChanged: (val) {
+                      //     setState(() => selectedSector = val);
+                      //   },
+                      // ),
                       SizedBox(height: 22.h),
                       _label("Product"),
+                      SizedBox(height: 10.h),
                       _productGrid(),
 
                       SizedBox(height: 22.h),
                       _label("Comments"),
                       _textField(),
+                      SizedBox(height: 22.h),
+                      _label("Next Follow-up Date (optional)"),
+                      _dateField(
+                        followupDate,
+                        () => _pickDate(isFollowup: true),
+                      ),
 
-                      SizedBox(height: 30.h),
+                      SizedBox(height: 22.h),
                     ],
                   ),
                 ),
@@ -152,9 +258,9 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
     );
   }
 
-  Widget _dateField() {
+  Widget _dateField(DateTime? date, Function() onTap) {
     return InkWell(
-      onTap: _pickDate,
+      onTap: onTap,
       child: Container(
         height: 50.h,
         margin: EdgeInsets.only(top: 8.h),
@@ -166,12 +272,7 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              selectedDate == null
-                  ? "Select Date"
-                  : _formatter.format(selectedDate!),
-              style: TextStyle(fontSize: 14.sp),
-            ),
+            Text(date == null ? "Select Date" : _formatter.format(date)),
             const Icon(Icons.calendar_month),
           ],
         ),
@@ -244,11 +345,24 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
   }
 
   Widget _productGrid() {
+    if (isLoadingProducts) {
+      return Padding(
+        padding: EdgeInsets.only(top: 20.h),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (productList.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: Text("No products available"),
+      );
+    }
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.only(top: 10.h),
-      itemCount: products.length,
+      itemCount: productList.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         mainAxisSpacing: 14.h,
@@ -256,15 +370,15 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
         childAspectRatio: 1.3,
       ),
       itemBuilder: (_, index) {
-        final item = products[index];
-        final isSelected = selectedProducts.contains(item);
+        final item = productList[index];
+        final isSelected = selectedProductSrNos.contains(item.productSrNo);
 
         return InkWell(
           onTap: () {
             setState(() {
               isSelected
-                  ? selectedProducts.remove(item)
-                  : selectedProducts.add(item);
+                  ? selectedProductSrNos.remove(item.productSrNo)
+                  : selectedProductSrNos.add(item.productSrNo);
             });
           },
           child: Container(
@@ -273,18 +387,9 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
               borderRadius: BorderRadius.circular(10.r),
               border: Border.all(
                 color: isSelected ? AppColor.primaryRed : AppColor.grey,
-                width: isSelected ? 1.5 : 1,
               ),
             ),
-            child: Text(
-              item,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13.sp,
-                color: isSelected ? AppColor.primaryRed : AppColor.textDark,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: Text(item.productName),
           ),
         );
       },
@@ -298,15 +403,7 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
         children: [
           Expanded(
             child: InkWell(
-              onTap: () {
-                if (_formKey.currentState!.validate()) {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => EnquiryScreen()),
-                    (route) => false,
-                  );
-                } else {}
-              },
+              onTap: isSubmitting ? null : _submitEnquiry,
 
               child: Container(
                 height: 50.h,
@@ -315,14 +412,20 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  "Save",
-                  style: TextStyle(
-                    color: AppColor.white,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: isSubmitting
+                    ? SizedBox(
+                        height: 20.h,
+                        width: 20.h,
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+                    : Text(
+                        "Save",
+                        style: TextStyle(
+                          color: AppColor.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -352,61 +455,22 @@ class _AddEnquiryScreenState extends State<AddEnquiryScreen> {
 
   // ------------------------------------------------------------------
 
-  Future<void> _pickDate() async {
+  Future<void> _pickDate({required bool isFollowup}) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: AppColor.primaryRed),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
-      setState(() => selectedDate = picked);
+      setState(() {
+        if (isFollowup) {
+          followupDate = picked;
+        } else {
+          billDate = picked;
+        }
+      });
     }
-  }
-
-  void _openSelection({
-    required String title,
-    required List<String> list,
-    required Function(String) onSelect,
-  }) {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
-      ),
-      builder: (_) {
-        return Padding(
-          padding: EdgeInsets.all(16.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 16.h),
-              ...list.map(
-                (item) => ListTile(
-                  title: Text(item),
-                  onTap: () {
-                    onSelect(item);
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 }

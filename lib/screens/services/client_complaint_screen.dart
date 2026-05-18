@@ -275,7 +275,7 @@ class _ClientComplaintScreenState extends State<ClientComplaintScreen> {
 
   Widget _actionButtons() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 40.h),
+      padding: EdgeInsets.fromLTRB(16.w, 15.h, 16.w, 50.h),
       child: Row(
         children: [
           Expanded(

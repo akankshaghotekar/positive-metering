@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:positive_metering/api/api_service.dart';
+import 'package:positive_metering/model/enquiry_model.dart';
 import 'package:positive_metering/screens/enquiry/add_enquiry_screen.dart';
+import 'package:positive_metering/screens/enquiry/enquiry_detail_screen.dart';
+import 'package:positive_metering/shared_pref/app_pref.dart';
 import 'package:positive_metering/utils/animation_helper/animated_page_route.dart';
 import 'package:positive_metering/utils/app_colors.dart';
 import 'package:positive_metering/utils/widgets/common_app_bar.dart';
@@ -18,10 +22,36 @@ class EnquiryScreen extends StatefulWidget {
 class _EnquiryScreenState extends State<EnquiryScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  List<EnquiryModel> enquiryList = [];
+  bool isLoading = false;
+
   DateTime fromDate = DateTime.now();
   DateTime toDate = DateTime.now();
 
   final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
+
+  Future<void> fetchEnquiry() async {
+    setState(() => isLoading = true);
+
+    final userSrNo = await AppPref.getUserSrNo();
+
+    final data = await ApiService.getEnquiry(
+      usersrno: userSrNo ?? "",
+      fromDate: _dateFormat.format(fromDate),
+      toDate: _dateFormat.format(toDate),
+    );
+
+    setState(() {
+      enquiryList = data;
+      isLoading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEnquiry();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,8 +101,36 @@ class _EnquiryScreenState extends State<EnquiryScreen> {
 
             /// LIST
             Expanded(
-              child: ListView(children: const [EnquiryCard(), EnquiryCard()]),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : enquiryList.isEmpty
+                  ? const Center(child: Text("No Data Found"))
+                  : ListView.builder(
+                      itemCount: enquiryList.length,
+                      itemBuilder: (context, index) {
+                        final item = enquiryList[index];
+
+                        return InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              AnimatedPageRoute(
+                                page: EnquiryDetailScreen(
+                                  enquirySrNo: item.enquirySrNo,
+                                ),
+                              ),
+                            );
+                          },
+                          child: EnquiryCard(
+                            enquirySrNo: item.enquirySrNo,
+                            date: item.billDate,
+                            companyName: item.companyName,
+                          ),
+                        );
+                      },
+                    ),
             ),
+            SizedBox(height: 40.h),
           ],
         ),
       ),
@@ -177,21 +235,30 @@ class _EnquiryScreenState extends State<EnquiryScreen> {
   Widget _viewButton() {
     return Padding(
       padding: EdgeInsets.only(top: 26.h),
-      child: Container(
-        height: 46.h,
-        padding: EdgeInsets.symmetric(horizontal: 18.w),
-        decoration: BoxDecoration(
-          color: AppColor.primaryRed,
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          "View",
-          style: TextStyle(
-            color: AppColor.white,
-            fontSize: 15.sp, // 🔼 Increased
-            fontWeight: FontWeight.w600,
+      child: InkWell(
+        onTap: isLoading ? null : fetchEnquiry,
+        child: Container(
+          height: 46.h,
+          padding: EdgeInsets.symmetric(horizontal: 18.w),
+          decoration: BoxDecoration(
+            color: AppColor.primaryRed,
+            borderRadius: BorderRadius.circular(8.r),
           ),
+          alignment: Alignment.center,
+          child: isLoading
+              ? SizedBox(
+                  height: 18.h,
+                  width: 18.h,
+                  child: CircularProgressIndicator(color: Colors.white),
+                )
+              : Text(
+                  "View",
+                  style: TextStyle(
+                    color: AppColor.white,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
         ),
       ),
     );

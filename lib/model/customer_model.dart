@@ -4,9 +4,15 @@ class CustomerModel {
   final String subregionSrNo;
   final String customerTypeSrNo;
   final String groupSrNo;
+
   final String companyName;
   final String customerName;
   final String mobileNo;
+
+  final String customerType;
+  final String groupName;
+
+  bool isLadle;
 
   CustomerModel({
     required this.customerSrNo,
@@ -17,15 +23,23 @@ class CustomerModel {
     required this.companyName,
     required this.customerName,
     required this.mobileNo,
+    required this.customerType,
+    required this.groupName,
+    required this.isLadle,
   });
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) {
     return CustomerModel(
-      customerSrNo: json['customer_srno'],
-      regionSrNo: json['region_srno'],
-      subregionSrNo: json['subregion_srno'],
-      customerTypeSrNo: json['customer_type_srno'],
-      groupSrNo: json['group_srno'],
+      customerSrNo: json['customer_srno'] ?? "",
+
+      regionSrNo: json['region_srno'] ?? "",
+
+      subregionSrNo: json['subregion_srno'] ?? "",
+
+      customerTypeSrNo: json['customer_type_srno'] ?? "",
+
+      groupSrNo: json['group_srno'] ?? "",
+
       companyName: json['company_name']
           .toString()
           .replaceAll('\n', ' ')
@@ -37,7 +51,14 @@ class CustomerModel {
           .replaceAll('\n', ' ')
           .replaceAll('\r', '')
           .trim(),
-      mobileNo: json['mobile_no'],
+
+      mobileNo: json['mobile_no'] ?? "",
+
+      customerType: json['customer_type'] ?? "",
+
+      groupName: json['group_name'] ?? "",
+
+      isLadle: json['ladle'] == "y",
     );
   }
 }

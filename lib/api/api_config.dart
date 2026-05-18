@@ -18,12 +18,17 @@ class ApiConfig {
   static String get addAttendanceRegularizeUrl =>
       "${baseUrl}addattendanceregularize.php";
 
-  // ── Attendance (Punch In / Out) ──
   static String get markAttendanceUrl => "${baseUrl}markAttendance.php";
   static String get getAttendanceStatusUrl =>
       "${baseUrl}get_attendance_status.php";
 
-  // ── Live Location ──
   static String get addEmployeeLocationUrl =>
       "${baseUrl}addEmployeeLocation.php";
+
+  static String get getProductsUrl => "${baseUrl}getProducts.php";
+  static String get getTourPlanDetailsUrl => "${baseUrl}getTourPlanDetails.php";
+  static String get getTourPlanDetailsYearlyUrl =>
+      "${baseUrl}getTourPlanDetailsYearly.php";
+  static String get addVisitUrl => "${baseUrl}addVisit.php";
+  static String get addEnquiryUrl => "${baseUrl}addEnquiry.php";
 }

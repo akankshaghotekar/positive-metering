@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:positive_metering/api/api_service.dart';
+import 'package:positive_metering/model/enquiry_followup_model.dart';
+import 'package:positive_metering/model/visit_followup_model.dart';
 import 'package:positive_metering/screens/follow_up/view_add_follow_up_screen.dart';
+import 'package:positive_metering/shared_pref/app_pref.dart';
 import 'package:positive_metering/utils/animation_helper/animated_page_route.dart';
 import 'package:positive_metering/utils/app_colors.dart';
 import 'package:positive_metering/utils/widgets/common_app_bar.dart';
 import 'package:positive_metering/utils/widgets/common_drawer.dart';
 
 class FollowUpScreen extends StatefulWidget {
-  const FollowUpScreen({super.key});
+  final String type;
+  const FollowUpScreen({super.key, required this.type});
 
   @override
   State<FollowUpScreen> createState() => _FollowUpScreenState();
@@ -17,14 +22,90 @@ class FollowUpScreen extends StatefulWidget {
 class _FollowUpScreenState extends State<FollowUpScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  Map<String, String> productMap = {};
+
+  List<EnquiryFollowUpModel> enquiryList = [];
+  List<VisitFollowUpModel> visitList = [];
+  bool isLoading = false;
+
   DateTime fromDate = DateTime.now();
   DateTime toDate = DateTime.now();
 
-  final DateFormat _formatter = DateFormat('dd-MM-yyyy');
+  final DateFormat _apiFormatter = DateFormat('dd-MMM-yyyy');
 
-  String status = "ALL";
-  String salesPerson = "ALL";
-  String showEntries = "10";
+  TextEditingController searchController = TextEditingController();
+
+  List<EnquiryFollowUpModel> filteredEnquiryList = [];
+  List<VisitFollowUpModel> filteredVisitList = [];
+
+  String getProductNames(String productSrNos) {
+    if (productSrNos.isEmpty || productSrNos == "0") return "-";
+
+    final ids = productSrNos.split(",");
+
+    return ids
+        .map((id) {
+          return productMap[id.trim()] ?? id;
+        })
+        .join(", ");
+  }
+
+  Future<void> fetchFollowUps() async {
+    final products = await ApiService.getProducts();
+
+    productMap = {for (var p in products) p.productSrNo: p.productName};
+    setState(() => isLoading = true);
+
+    final userSrNo = await AppPref.getUserSrNo();
+
+    final apiFormatter = DateFormat('dd-MMM-yyyy');
+
+    if (widget.type == "enquiry") {
+      enquiryList = await ApiService.getEnquiryFollowUp(
+        usersrno: userSrNo ?? "",
+        fromDate: apiFormatter.format(fromDate),
+        toDate: apiFormatter.format(toDate),
+      );
+      filteredEnquiryList = enquiryList;
+    } else {
+      visitList = await ApiService.getVisitFollowUp(
+        usersrno: userSrNo ?? "",
+        fromDate: apiFormatter.format(fromDate),
+        toDate: apiFormatter.format(toDate),
+      );
+      filteredVisitList = visitList;
+    }
+
+    setState(() => isLoading = false);
+  }
+
+  void _onSearch(String value) {
+    if (widget.type == "enquiry") {
+      filteredEnquiryList = enquiryList.where((item) {
+        final name = item.companyName.toLowerCase();
+        final mobile = item.mobileNo.toLowerCase();
+        final query = value.toLowerCase();
+
+        return name.contains(query) || mobile.contains(query);
+      }).toList();
+    } else {
+      filteredVisitList = visitList.where((item) {
+        final name = item.companyName.toLowerCase();
+        final mobile = item.mobileNo.toLowerCase();
+        final query = value.toLowerCase();
+
+        return name.contains(query) || mobile.contains(query);
+      }).toList();
+    }
+
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchFollowUps();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,30 +135,32 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                 _dateBox("From Date", fromDate, _pickFromDate),
                 SizedBox(width: 12.w),
                 _dateBox("To Date", toDate, _pickToDate),
+                SizedBox(width: 12.w),
+                _viewButton(),
               ],
             ),
 
             SizedBox(height: 16.h),
 
-            /// STATUS + SALES PERSON
-            Row(
-              children: [
-                _dropdownBox("Status", status, [
-                  "ALL",
-                  "Open",
-                  "Closed",
-                ], (val) => setState(() => status = val)),
-                SizedBox(width: 12.w),
-                _dropdownBox(
-                  "Sales Person",
-                  salesPerson,
-                  ["ALL", "XYZ", "Ketan"],
-                  (val) => setState(() => salesPerson = val),
-                ),
-                SizedBox(width: 12.w),
-                _viewButton(),
-              ],
-            ),
+            // /// STATUS + SALES PERSON
+            // Row(
+            //   children: [
+            //     _dropdownBox("Status", status, [
+            //       "ALL",
+            //       "Open",
+            //       "Closed",
+            //     ], (val) => setState(() => status = val)),
+            //     SizedBox(width: 12.w),
+            //     _dropdownBox(
+            //       "Sales Person",
+            //       salesPerson,
+            //       ["ALL", "XYZ", "Ketan"],
+            //       (val) => setState(() => salesPerson = val),
+            //     ),
+            //     SizedBox(width: 12.w),
+            //     _viewButton(),
+            //   ],
+            // ),
             SizedBox(height: 10.h),
 
             Divider(height: 32.h, color: AppColor.black),
@@ -85,42 +168,55 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
             SizedBox(height: 10.h),
 
             /// SHOW ENTRIES + SEARCH
-            Row(
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      "Show ",
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: AppColor.black,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    _smallDropdown(showEntries, [
-                      "10",
-                      "25",
-                      "50",
-                    ], (val) => setState(() => showEntries = val)),
-                    Text(
-                      " entries",
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: AppColor.black,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                _searchBox(),
-              ],
-            ),
+            _searchBox(),
 
             SizedBox(height: 16.h),
 
             /// LIST
-            Expanded(child: ListView(children: const [FollowUpCard()])),
+            Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : widget.type == "enquiry"
+                  ? enquiryList.isEmpty
+                        ? const Center(child: Text("No Data Found"))
+                        : ListView.builder(
+                            itemCount: filteredEnquiryList.length,
+                            itemBuilder: (context, index) {
+                              final item = filteredEnquiryList[index];
+
+                              return FollowUpCard(
+                                followupDate: item.followupDate,
+                                companyName: item.companyName,
+                                mobile: item.mobileNo,
+                                product: getProductNames(item.product),
+                                status: item.status,
+                                type: "enquiry",
+                                enquirySrNo: item.enquirySrNo,
+                                customerSrNo: item.customerSrNo,
+                              );
+                            },
+                          )
+                  : visitList.isEmpty
+                  ? const Center(child: Text("No Data Found"))
+                  : ListView.builder(
+                      itemCount: filteredVisitList.length,
+                      itemBuilder: (context, index) {
+                        final item = filteredVisitList[index];
+
+                        return FollowUpCard(
+                          followupDate: item.followupDate,
+                          companyName: item.companyName,
+                          mobile: item.mobileNo,
+                          product: "-",
+                          status: item.status,
+                          type: "visit",
+                          tourPlanSrNo: item.tourPlanSrNo,
+                          customerSrNo: item.customerSrNo,
+                        );
+                      },
+                    ),
+            ),
+            SizedBox(height: 45.h),
           ],
         ),
       ),
@@ -155,7 +251,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_formatter.format(date)),
+                  Text(_apiFormatter.format(date)),
                   Icon(Icons.calendar_month, size: 18.sp),
                 ],
               ),
@@ -211,17 +307,29 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
   Widget _viewButton() {
     return Padding(
       padding: EdgeInsets.only(top: 22.h),
-      child: Container(
-        height: 46.h,
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        decoration: BoxDecoration(
-          color: AppColor.primaryRed,
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          "View",
-          style: TextStyle(color: AppColor.white, fontWeight: FontWeight.w600),
+      child: InkWell(
+        onTap: isLoading ? null : fetchFollowUps, // ✅ THIS WAS MISSING
+        child: Container(
+          height: 46.h,
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          decoration: BoxDecoration(
+            color: AppColor.primaryRed,
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          alignment: Alignment.center,
+          child: isLoading
+              ? SizedBox(
+                  height: 18.h,
+                  width: 18.h,
+                  child: CircularProgressIndicator(color: Colors.white),
+                )
+              : Text(
+                  "View",
+                  style: TextStyle(
+                    color: AppColor.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
         ),
       ),
     );
@@ -254,18 +362,20 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
   Widget _searchBox() {
     return Container(
       height: 36.h,
-      width: 130.w,
+      width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 10.w),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6.r),
         border: Border.all(color: AppColor.grey),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.search, size: 18.sp),
-          SizedBox(width: 6.w),
-          const Expanded(child: Text("Search")),
-        ],
+      child: TextField(
+        controller: searchController,
+        onChanged: _onSearch,
+        decoration: InputDecoration(
+          icon: Icon(Icons.search, size: 18.sp),
+          hintText: "Search by name or mobile",
+          border: InputBorder.none,
+        ),
       ),
     );
   }
@@ -312,69 +422,152 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
 /// FOLLOW UP CARD
 /// --------------------------------------------------------------------
 
-class FollowUpCard extends StatelessWidget {
-  const FollowUpCard({super.key});
+class FollowUpCard extends StatefulWidget {
+  final String followupDate;
+  final String companyName;
+  final String mobile;
+  final String product;
+  final String status;
+  final String type;
+  final String? enquirySrNo;
+  final String? tourPlanSrNo;
+  final String customerSrNo;
+
+  const FollowUpCard({
+    super.key,
+    required this.followupDate,
+    required this.companyName,
+    required this.mobile,
+    required this.product,
+    required this.status,
+    required this.type,
+    this.enquirySrNo,
+    this.tourPlanSrNo,
+    required this.customerSrNo,
+  });
 
   @override
+  State<FollowUpCard> createState() => _FollowUpCardState();
+}
+
+class _FollowUpCardState extends State<FollowUpCard> {
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(14.w),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColor.grey),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _row("Follow-up Date :", "29-01-2026"),
-          _row("Customer Name :", "Vinod Takekar"),
-          _row("Customer Phone :", "9822090099"),
-          _row("Products :", "Dosing Pump"),
-          _row("Assign To :", "Ketan"),
-          _row("Status :", "XYZ"),
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: Container(
+        padding: EdgeInsets.all(14.w),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppColor.grey),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _row("Follow-up Date :", widget.followupDate),
+            _row("Company Name :", widget.companyName),
+            _row("Customer Phone :", widget.mobile),
+            if (widget.type.toLowerCase().trim() != "visit" &&
+                widget.product.isNotEmpty &&
+                widget.product != "-")
+              _productRow("Products :", widget.product),
+            _row("Status :", widget.status),
 
-          SizedBox(height: 12.h),
+            SizedBox(height: 12.h),
 
-          InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                AnimatedPageRoute(page: ViewAddFollowUpScreen()),
-              );
-            },
-            child: Container(
-              height: 40.h,
-              decoration: BoxDecoration(
-                color: AppColor.primaryRed,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                "View and Add Follow-up",
-                style: TextStyle(
-                  color: AppColor.white,
-                  fontWeight: FontWeight.w600,
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  AnimatedPageRoute(
+                    page: ViewAddFollowUpScreen(
+                      type: widget.type,
+                      enquirySrNo: widget.enquirySrNo,
+                      tourPlanSrNo: widget.tourPlanSrNo,
+                      customerSrNo: widget.customerSrNo,
+                      companyName: widget.companyName,
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                height: 40.h,
+                decoration: BoxDecoration(
+                  color: AppColor.primaryRed,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  "View and Add Follow-up",
+                  style: TextStyle(
+                    color: AppColor.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _row(String label, String value) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 4.h),
+      padding: EdgeInsets.only(bottom: 6.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          SizedBox(
+            width: 150.w, // fixed width for label
             child: Text(
               label,
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
-          Text(value),
+
+          Expanded(
+            child: Text(value, softWrap: true, overflow: TextOverflow.visible),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _productRow(String label, String value) {
+    final products = value.split(",");
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 6.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          SizedBox(height: 4.h),
+
+          Wrap(
+            spacing: 6.w,
+            runSpacing: 6.h,
+            children: products.map((p) {
+              final text = p.trim();
+
+              return Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: AppColor.primaryRed.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: AppColor.primaryRed,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ],
       ),
     );

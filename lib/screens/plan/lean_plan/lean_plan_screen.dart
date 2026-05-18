@@ -163,7 +163,7 @@ class _LeanPlanCard extends StatelessWidget {
     return InkWell(
       onTap: () {
         if (status == "Approved" || status == "Pending") {
-          Navigator.push(context, AnimatedPageRoute(page: MarkVisitScreen()));
+          // Navigator.push(context, AnimatedPageRoute(page: MarkVisitScreen()));
         }
       },
       borderRadius: BorderRadius.circular(12.r),

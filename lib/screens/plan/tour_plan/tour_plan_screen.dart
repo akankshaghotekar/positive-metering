@@ -136,7 +136,7 @@ class _PlanScreenState extends State<PlanScreen> {
                         companyName: item.companyName,
                         regionName: item.regionName,
                         status: item.status,
-
+                        tourPlanSrNo: item.tourPlanSrNo,
                         color: item.status == "Approved"
                             ? AppColor.green
                             : item.status == "Rejected"
@@ -150,6 +150,7 @@ class _PlanScreenState extends State<PlanScreen> {
                       );
                     }).toList(),
             ),
+            SizedBox(height: 40.h),
           ],
         ),
       ),
@@ -284,6 +285,7 @@ class _PlanCard extends StatelessWidget {
   final Map<String, String>? comments;
   final String companyName;
   final String regionName;
+  final String tourPlanSrNo;
 
   const _PlanCard({
     required this.status,
@@ -292,6 +294,7 @@ class _PlanCard extends StatelessWidget {
     this.comments,
     required this.companyName,
     required this.regionName,
+    required this.tourPlanSrNo,
   });
 
   @override
@@ -307,7 +310,9 @@ class _PlanCard extends StatelessWidget {
         if (status == "Approved" || status == "Pending") {
           Navigator.push(
             context,
-            AnimatedPageRoute(page: const MarkVisitScreen()),
+            AnimatedPageRoute(
+              page: MarkVisitScreen(tourPlanSrNo: tourPlanSrNo),
+            ),
           );
         }
       },

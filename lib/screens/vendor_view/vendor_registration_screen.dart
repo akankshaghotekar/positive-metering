@@ -145,7 +145,7 @@ class _VendorRegistrationScreenState extends State<VendorRegistrationScreen> {
 
             /// SUBMIT BUTTON
             Padding(
-              padding: EdgeInsets.only(bottom: 16.h),
+              padding: EdgeInsets.fromLTRB(0.w, 15.h, 0.w, 50.h),
               child: SizedBox(
                 width: double.infinity,
                 height: 46.h,
